@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { Nav } from './Nav';
 
 export const Header = () => (
-  <AppBar position="sticky" color="primary" elevation={2}>
+  <AppBar position="sticky" elevation={2}>
     <Toolbar sx={{ gap: 2 }}>
       <Box
         component={Link}

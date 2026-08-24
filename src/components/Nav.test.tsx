@@ -34,6 +34,7 @@ describe('Nav', () => {
     mockUseAuth(null);
     renderNav();
     expect(screen.getByRole('link', { name: /log in/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /register/i })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /post/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /admin/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /log out/i })).not.toBeInTheDocument();
@@ -55,13 +56,14 @@ describe('Nav', () => {
     expect(screen.queryByRole('link', { name: /admin/i })).not.toBeInTheDocument();
   });
 
-  it('shows Admin and Log out for admin user; hides Post and Log in', () => {
+  it('shows Admin, Post and Log out for admin user; hides Log in and Register', () => {
     mockUseAuth({ authenticated: true, username: 'admin', name: 'Admin', is_admin: true, status: 'validated', timezone: 'Europe/London' });
     renderNav();
     expect(screen.getByRole('link', { name: /admin/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /post/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /post/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /log in/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /register/i })).not.toBeInTheDocument();
   });
 
   it('calls logout() when Log out button clicked', async () => {

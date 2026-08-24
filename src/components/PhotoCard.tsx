@@ -46,7 +46,7 @@ export const PhotoCard = ({ photo }: Props) => {
   }).format(new Date(posted_at));
 
   return (
-    <Card elevation={2} sx={{ mb: 3 }}>
+    <Card sx={{ mb: 3 }}>
       {imgError ? (
         <CameraPlaceholder />
       ) : (

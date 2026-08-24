@@ -43,8 +43,9 @@ export const Nav = () => {
       <NavButton to="/">Home</NavButton>
       <NavButton to="/index">Index</NavButton>
 
+      {!user && <NavButton to="/register">Register</NavButton>}
       {!user && <NavButton to="/login">Log in</NavButton>}
-      {user && !user.is_admin && <NavButton to="/post">Post</NavButton>}
+      {user && <NavButton to="/post">Post</NavButton>}
       {user?.is_admin && <NavButton to="/admin">Admin</NavButton>}
 
       {user && (
