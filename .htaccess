@@ -8,6 +8,7 @@ php_value post_max_size 17M
 # ---- Security: never serve private files / dirs ----
 RewriteRule ^(\.env|composer\.(json|lock)|phpstan\.neon|phpunit\.xml|package(-lock)?\.json|vite\.config\.ts|eslint\.config\.js|tsconfig.*\.json)$ - [F,L]
 RewriteRule ^(data|logs|coverage|\.git|\.specifications|node_modules|src|tests|vendor|lib|config|migrations|scripts|docs|public)/ - [F,L]
+RewriteRule ^api/data/ - [F,L]
 
 # ---- API and PHP endpoints reach mod_php directly ----
 RewriteCond %{REQUEST_URI} ^/api/ [OR]

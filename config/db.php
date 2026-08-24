@@ -26,6 +26,14 @@ function db(?PDO $override = null): PDO
 
     $path = (string) env('DB_PATH', 'data/aday.sqlite');
 
+    // Resolve relative DB_PATH against the project root, not the PHP process
+    // CWD. Under Apache/mod_php the CWD follows the script directory (e.g.
+    // api/status.php runs with CWD=.../api), so a bare relative path would
+    // create a second, empty database in the wrong place.
+    if ($path !== ':memory:' && !str_starts_with($path, '/')) {
+        $path = dirname(__DIR__) . '/' . $path;
+    }
+
     if ($path !== ':memory:') {
         $dir = dirname($path);
         if (!is_dir($dir)) {
