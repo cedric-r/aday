@@ -147,6 +147,8 @@ export const UserModal = ({ mode, user, onClose, onSaved }: Props) => {
               label="Display name"
               id="modal-name-add"
               required
+              error={!!addForm.formState.errors.name}
+              helperText={addForm.formState.errors.name?.message}
               inputProps={{ 'aria-label': 'Display name' }}
               InputLabelProps={{ htmlFor: 'modal-name-add' }}
             />
@@ -156,6 +158,8 @@ export const UserModal = ({ mode, user, onClose, onSaved }: Props) => {
               id="modal-email-add"
               type="email"
               required
+              error={!!addForm.formState.errors.email}
+              helperText={addForm.formState.errors.email?.message}
               inputProps={{ 'aria-label': 'Email' }}
               InputLabelProps={{ htmlFor: 'modal-email-add' }}
             />
@@ -165,6 +169,8 @@ export const UserModal = ({ mode, user, onClose, onSaved }: Props) => {
               id="modal-password"
               type="password"
               required
+              error={!!addForm.formState.errors.password}
+              helperText={addForm.formState.errors.password?.message}
               inputProps={{ 'aria-label': 'Password' }}
               InputLabelProps={{ htmlFor: 'modal-password' }}
             />
@@ -202,6 +208,8 @@ export const UserModal = ({ mode, user, onClose, onSaved }: Props) => {
               label="Display name"
               id="modal-name-edit"
               required
+              error={!!editForm.formState.errors.name}
+              helperText={editForm.formState.errors.name?.message}
               inputProps={{ 'aria-label': 'Display name' }}
               InputLabelProps={{ htmlFor: 'modal-name-edit' }}
             />
@@ -211,6 +219,8 @@ export const UserModal = ({ mode, user, onClose, onSaved }: Props) => {
               id="modal-email-edit"
               type="email"
               required
+              error={!!editForm.formState.errors.email}
+              helperText={editForm.formState.errors.email?.message}
               inputProps={{ 'aria-label': 'Email' }}
               InputLabelProps={{ htmlFor: 'modal-email-edit' }}
             />

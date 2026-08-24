@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UserModal } from './UserModal';
@@ -79,6 +79,41 @@ describe('UserModal', () => {
       );
     });
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
+  });
+
+  it('shows invalid email error without making API call', async () => {
+    render(<UserModal mode="add" onClose={vi.fn()} onSaved={vi.fn()} />);
+
+    await userEvent.type(screen.getByLabelText(/username/i), 'alice');
+    await userEvent.type(screen.getByLabelText(/display name/i), 'Alice');
+    await userEvent.type(screen.getByLabelText(/email/i), 'not-an-email');
+    await userEvent.type(screen.getByLabelText(/password/i), 'password123');
+
+    // Use fireEvent.submit to bypass jsdom native email constraint validation
+    // so that RHF + Zod validation runs and surfaces the error.
+    const form = document.getElementById('user-modal-form')!;
+    fireEvent.submit(form);
+
+    await waitFor(() =>
+      expect(screen.getByText(/invalid email/i)).toBeInTheDocument(),
+    );
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('shows password too short error without making API call', async () => {
+    render(<UserModal mode="add" onClose={vi.fn()} onSaved={vi.fn()} />);
+
+    await userEvent.type(screen.getByLabelText(/username/i), 'alice');
+    await userEvent.type(screen.getByLabelText(/display name/i), 'Alice');
+    await userEvent.type(screen.getByLabelText(/email/i), 'alice@example.com');
+    await userEvent.type(screen.getByLabelText(/password/i), 'short'); // < 8 chars
+
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/string must contain at least 8 character/i)).toBeInTheDocument(),
+    );
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it('shows error message when POST fails', async () => {
