@@ -48,6 +48,8 @@ final class AuthTest extends TestCase
         $this->assertSame('alice', $res['json']['username']);
         $this->assertArrayHasKey('is_admin', $res['json']);
         $this->assertArrayHasKey('status', $res['json']);
+        $this->assertArrayHasKey('timezone', $res['json']);
+        $this->assertSame('UTC', $res['json']['timezone']);
         $this->assertArrayNotHasKey('password_hash', $res['json']);
     }
 

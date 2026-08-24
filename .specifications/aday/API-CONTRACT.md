@@ -23,9 +23,11 @@ Returns the current session user. **Always 200** — never 401 (avoids browser a
   "username": "string",
   "name": "string",
   "is_admin": false,
-  "status": "validated"
+  "status": "validated",
+  "timezone": "Europe/London"
 }
 ```
+> `timezone` is the user's IANA timezone identifier (e.g. `"UTC"`, `"America/New_York"`). Required by the React client to determine local posting window status.
 
 **Response — unauthenticated**
 ```json

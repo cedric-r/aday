@@ -22,5 +22,6 @@ if ($user === null) {
         'name'          => $user['name'],
         'is_admin'      => (bool) $user['is_admin'],
         'status'        => $user['status'],
+        'timezone'      => $user['timezone'],
     ]);
 }
