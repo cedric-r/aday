@@ -144,5 +144,6 @@ final class AuthTest extends TestCase
         $res = TestHelper::request($this->logoutFile, 'POST');
 
         $this->assertSame(200, $res['status']);
+        $this->assertEmpty($_SESSION, 'Session must be empty after logout');
     }
 }

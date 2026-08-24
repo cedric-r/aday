@@ -5,8 +5,26 @@ declare(strict_types=1);
 use PHPUnit\Framework\TestCase;
 
 /**
+ * Test double for Mailer — counts sendAdminValidation() calls without touching SMTP.
+ */
+class SpyMailer extends Mailer
+{
+    public int $callCount = 0;
+
+    public function __construct()
+    {
+        // Skip parent — no SMTP config required in tests.
+    }
+
+    public function sendAdminValidation(array $user): void
+    {
+        $this->callCount++;
+    }
+}
+
+/**
  * Tests for api/captcha-question.php and api/register.php (US-1).
- * Path A — all new code, written before implementation.
+ * Path A — tests committed before implementation.
  */
 final class RegisterTest extends TestCase
 {
@@ -22,6 +40,12 @@ final class RegisterTest extends TestCase
 
         // Seed a valid captcha index in session
         $_SESSION = ['captcha_index' => 0]; // answer for index 0 is '7'
+    }
+
+    protected function tearDown(): void
+    {
+        // Reset injected mailer so it does not leak between tests.
+        Mailer::setTestInstance(null);
     }
 
     // -----------------------------------------------------------------------
@@ -182,6 +206,40 @@ final class RegisterTest extends TestCase
         ]);
 
         $this->assertSame(422, $res['status']);
+    }
+
+    // -----------------------------------------------------------------------
+    // Registration — Mailer invocation (MAJOR 2)
+    // -----------------------------------------------------------------------
+
+    public function test_mailer_called_once_on_success(): void
+    {
+        $spy = new SpyMailer();
+        Mailer::setTestInstance($spy);
+
+        $_SESSION = ['captcha_index' => 0];
+
+        $res = TestHelper::request($this->registerFile, 'POST', [
+            'username'       => 'mailertest',
+            'name'           => 'Mailer Test',
+            'email'          => 'mailertest@example.com',
+            'password'       => 'password123',
+            'timezone'       => 'UTC',
+            'captcha_answer' => '7',
+        ]);
+
+        $this->assertSame(201, $res['status']);
+        $this->assertSame(1, $spy->callCount, 'sendAdminValidation() must be called exactly once on successful registration');
+    }
+
+    // -----------------------------------------------------------------------
+    // Method guard — 405 (MINOR 6)
+    // -----------------------------------------------------------------------
+
+    public function test_non_post_method_returns_405(): void
+    {
+        $res = TestHelper::request($this->registerFile, 'GET');
+        $this->assertSame(405, $res['status']);
     }
 
     // -----------------------------------------------------------------------

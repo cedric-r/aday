@@ -522,6 +522,8 @@ Committed after all backend tasks pass self-check. Covers all endpoints below.
 | `migrations/run.php` | Foundation | A | CLI migration runner |
 | `migrations/001_create_users.php` | US-1 | A | `users` + `settings` tables |
 | `migrations/003_create_photos.php` | US-4 | A | `photos` table + indexes |
+| `lib/ResponseException.php` | Foundation | A | Flow-control exception: `respond()` throws in test mode instead of calling `exit` |
+| `lib/Response.php` | Foundation | A | `respond(int, mixed): never` — shared by all 19 API endpoints |
 | `lib/Auth.php` | US-2 / US-7 | A | `requireAdmin`, `requireValidated`, `currentUser` *(SHARED)* |
 | `lib/Mailer.php` | US-1 | A | `sendAdminValidation()` |
 | `lib/WindowCheck.php` | US-4 | A | `isPostingOpen()` |

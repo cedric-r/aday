@@ -95,49 +95,37 @@ final class AdminUsersTest extends TestCase
 
     public function test_delete_self_returns_400(): void
     {
-        $admin = TestHelper::createUser(['username' => 'admin', 'email' => 'admin@example.com', 'is_admin' => 1]);
-        $_SESSION['user_id'] = $admin['id'];
+        // Two admins so last-admin guard does not fire first — isolates self-delete guard.
+        $admin1 = TestHelper::createUser(['username' => 'admin1', 'email' => 'admin1@example.com', 'is_admin' => 1]);
+        $admin2 = TestHelper::createUser(['username' => 'admin2', 'email' => 'admin2@example.com', 'is_admin' => 1]);
+        $_SESSION['user_id'] = $admin2['id'];
 
-        $res = TestHelper::request($this->usersFile, 'DELETE', [], ['id' => $admin['id']]);
+        $res = TestHelper::request($this->usersFile, 'DELETE', [], ['id' => $admin2['id']]);
         $this->assertSame(400, $res['status']);
+        $this->assertStringContainsString('own account', $res['body']);
     }
 
     public function test_delete_last_admin_returns_400(): void
     {
+        // Only 1 admin — last-admin guard must fire and return 400.
         $admin = TestHelper::createUser(['username' => 'admin', 'email' => 'admin@example.com', 'is_admin' => 1]);
-        $user  = TestHelper::createUser(['username' => 'regular', 'email' => 'reg@example.com']);
+        TestHelper::createUser(['username' => 'user', 'email' => 'user@example.com']);
         $_SESSION['user_id'] = $admin['id'];
 
-        // Try to delete the other user who is the only other user (admin is the only admin)
-        // Actually, try to delete admin (self) - already tested above.
-        // Test: try to delete the ONLY admin (admin is trying to delete themselves but we blocked that).
-        // Create scenario: admin tries to delete the LAST admin by deleting another user who IS admin.
-        // But we only have one admin here. Let's check if deleting ANY user that would leave no admins is blocked.
-        // Actually the rule is: can't delete if it's the last admin AND you're deleting an admin.
-        // Let's make the other user also admin, then delete the first admin.
+        $res = TestHelper::request($this->usersFile, 'DELETE', [], ['id' => $admin['id']]);
+        $this->assertSame(400, $res['status']);
+        $this->assertStringContainsString('last admin', $res['body']);
+    }
 
-        // Reset: make another admin
-        db()->prepare('UPDATE users SET is_admin = 0 WHERE id = :id')->execute([':id' => $admin['id']]);
-        // Now admin has is_admin=0. But $user is not admin either. This test is tricky.
-        // Simpler: 1 admin total, another user tries to delete that admin → 400.
-        // Re-setup:
-        TestHelper::resetDb();
-        $admin = TestHelper::createUser(['username' => 'admin', 'email' => 'admin@example.com', 'is_admin' => 1]);
-        $user  = TestHelper::createUser(['username' => 'regular', 'email' => 'reg@example.com']);
-        $_SESSION['user_id'] = $admin['id'];
-
-        // admin tries to delete themselves → 400 (self-delete)
-        // Already tested. So instead: another admin account tries to delete the last admin:
+    public function test_can_delete_admin_when_multiple_admins_exist(): void
+    {
+        // Two admins — deleting one should succeed.
+        $admin1 = TestHelper::createUser(['username' => 'admin1', 'email' => 'admin1@example.com', 'is_admin' => 1]);
         $admin2 = TestHelper::createUser(['username' => 'admin2', 'email' => 'admin2@example.com', 'is_admin' => 1]);
         $_SESSION['user_id'] = $admin2['id'];
 
-        // Now 2 admins exist. Delete admin1 → should succeed (not last admin).
-        $res = TestHelper::request($this->usersFile, 'DELETE', [], ['id' => $admin['id']]);
+        $res = TestHelper::request($this->usersFile, 'DELETE', [], ['id' => $admin1['id']]);
         $this->assertSame(200, $res['status']);
-
-        // Now only admin2 is admin. Try to delete admin2 (self) → 400
-        $res2 = TestHelper::request($this->usersFile, 'DELETE', [], ['id' => $admin2['id']]);
-        $this->assertSame(400, $res2['status']);
     }
 
     // -----------------------------------------------------------------------
@@ -161,8 +149,7 @@ final class AdminUsersTest extends TestCase
             ['id' => $user['id'], 'token' => $token]
         );
 
-        // validate.php redirects on success (302), or we may capture any non-4xx
-        $this->assertNotSame(401, $res['status']);
+        $this->assertSame(200, $res['status']);
 
         $updated = db()->query("SELECT status FROM users WHERE id = {$user['id']}")->fetch();
         $this->assertSame('validated', $updated['status']);
