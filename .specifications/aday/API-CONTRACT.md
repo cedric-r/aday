@@ -3,7 +3,7 @@
 **Branch:** `feature/aday-photo-publishing`
 **Version:** early drop (auth + registration endpoints stable)
 **Date:** 2026-08-24
-**Status:** PARTIAL — photo/feed/photographer endpoints to follow after Phase 3–6
+**Status:** FINAL — all 19 endpoints implemented and tested
 
 All requests and responses use `Content-Type: application/json; charset=utf-8` unless noted.
 Session is cookie-based (`aday_session`; Secure, HttpOnly, SameSite=Lax).
