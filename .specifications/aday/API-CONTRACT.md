@@ -293,6 +293,24 @@ Image URL: `/uploads/{username}/{filename}`
 
 ---
 
+### DELETE /api/admin/submissions.php?id=N
+
+Delete a photo submission by ID. Also removes the file from disk.
+
+**Response \xe2\x80\x94 200 OK**
+```json
+{ "message": "Submission deleted." }
+```
+
+**Error Responses**
+| Code | Condition |
+|---|---|
+| 400 | Missing or invalid id |
+| 403 | Not admin |
+| 404 | Photo not found |
+
+---
+
 ### GET /api/admin/export.php
 
 Streams a ZIP archive of all photos grouped by photographer.
