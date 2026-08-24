@@ -3,7 +3,7 @@
 **Story:** aday-photo-publishing
 **Branch:** feature/aday-photo-publishing
 **Date:** 2026-08-24
-**Status:** PENDING APPROVAL
+**Status:** APPROVED
 **Reason:** Two files committed but absent from IMPL-PLAN-react.md.
 
 ---
