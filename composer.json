@@ -16,6 +16,10 @@
             "config/db.php",
             "lib/ResponseException.php",
             "lib/Response.php"
+        ],
+        "classmap": [
+            "lib/",
+            "config/captcha.php"
         ]
     },
     "autoload-dev": {
