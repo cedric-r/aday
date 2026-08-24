@@ -33,7 +33,7 @@ if ($username === '' || $password === '') {
 // ── Load user ─────────────────────────────────────────────────────────────────
 
 $stmt = db()->prepare(
-    'SELECT id, username, name, password_hash, status, is_admin
+    'SELECT id, username, name, password_hash, status, is_admin, timezone
      FROM users WHERE username = :username'
 );
 $stmt->execute([':username' => $username]);
@@ -63,4 +63,5 @@ echo json_encode([
     'name'     => $user['name'],
     'is_admin' => (bool) $user['is_admin'],
     'status'   => $user['status'],
+    'timezone' => $user['timezone'],
 ]);
