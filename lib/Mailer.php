@@ -17,22 +17,22 @@ class Mailer
     private string $smtpFrom;
     private string $adminEmail;
 
-    /** @var static|null  Override injected in tests via setTestInstance(). */
-    private static ?self $testInstance = null;
+    /** @var Mailer|null  Override injected in tests via setTestInstance(). */
+    private static ?Mailer $testInstance = null;
 
     /**
      * Return the active Mailer instance.
      * Tests may inject a spy via setTestInstance(); production always gets a real Mailer.
      */
-    public static function make(): static
+    public static function make(): self
     {
-        return self::$testInstance ?? new static();
+        return self::$testInstance ?? new self();
     }
 
     /**
      * Inject a test double. Call setTestInstance(null) in tearDown() to reset.
      */
-    public static function setTestInstance(?self $instance): void
+    public static function setTestInstance(?Mailer $instance): void
     {
         self::$testInstance = $instance;
     }
