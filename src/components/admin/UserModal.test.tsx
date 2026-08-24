@@ -155,6 +155,23 @@ describe('UserModal', () => {
     expect(substackField).toHaveValue('https://alice.substack.com');
   });
 
+  it('includes password in PUT body when provided', async () => {
+    const onSaved = vi.fn();
+    const user = { id: 1, username: 'alice', name: 'Alice', email: 'a@a.com', substack_url: null, timezone: 'Europe/London', status: 'validated' as const, is_admin: false, created_at: '2026-01-01' };
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ message: 'Updated.' }), { status: 200 }),
+    );
+
+    render(<UserModal mode="edit" user={user} onClose={vi.fn()} onSaved={onSaved} />);
+
+    await userEvent.type(screen.getByLabelText(/new password/i), 'newpassword1');
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    const body = JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string) as Record<string, unknown>;
+    expect(body.password).toBe('newpassword1');
+  });
+
   it('omits password from PUT body when left blank', async () => {
     const onSaved = vi.fn();
     const user = { id: 1, username: 'alice', name: 'Alice', email: 'a@a.com', substack_url: null, timezone: 'Europe/London', status: 'validated' as const, is_admin: false, created_at: '2026-01-01' };
