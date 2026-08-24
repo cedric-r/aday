@@ -75,6 +75,7 @@ final class AuthTest extends TestCase
         $this->assertSame('bob', $res['json']['username']);
         $this->assertSame('validated', $res['json']['status']);
         $this->assertArrayHasKey('timezone', $res['json']);
+        $this->assertSame('UTC', $res['json']['timezone']);
     }
 
     public function test_login_wrong_password_returns_401(): void
