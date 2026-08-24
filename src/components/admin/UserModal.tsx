@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,6 +11,7 @@ import Button from '@mui/material/Button';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
 import Box from '@mui/material/Box';
+import Alert from '@mui/material/Alert';
 import { TimezoneSelect } from '@/components/TimezoneSelect';
 import type { AdminUser } from '@/schemas/admin.schema';
 
@@ -83,22 +84,34 @@ export const UserModal = ({ mode, user, onClose, onSaved }: Props) => {
     }
   }, [mode, user, editForm]);
 
+  const [apiError, setApiError] = useState<string | null>(null);
+
   const onSubmitAdd = async (values: AddValues) => {
-    await fetch('/api/admin/users.php', {
+    setApiError(null);
+    const res = await fetch('/api/admin/users.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...values, is_admin: values.is_admin ? 1 : 0 }),
     });
+    if (!res.ok) {
+      setApiError('Failed to create user. Please try again.');
+      return;
+    }
     onSaved();
     onClose();
   };
 
   const onSubmitEdit = async (values: EditValues) => {
-    await fetch(`/api/admin/users.php?id=${user!.id}`, {
+    setApiError(null);
+    const res = await fetch(`/api/admin/users.php?id=${user!.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...values, is_admin: values.is_admin ? 1 : 0 }),
     });
+    if (!res.ok) {
+      setApiError('Failed to update user. Please try again.');
+      return;
+    }
     onSaved();
     onClose();
   };
@@ -109,6 +122,9 @@ export const UserModal = ({ mode, user, onClose, onSaved }: Props) => {
     <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>{isAdd ? 'Add user' : 'Edit user'}</DialogTitle>
       <DialogContent>
+        {apiError && (
+          <Alert severity="error" sx={{ mb: 1 }}>{apiError}</Alert>
+        )}
         {isAdd ? (
           <Box
             component="form"

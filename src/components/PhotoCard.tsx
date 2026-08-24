@@ -17,12 +17,11 @@ const formatTimestamp = (posted_at: string): string =>
 export const PhotoCard = ({ photo }: Props) => {
   const [imgError, setImgError] = useState(false);
 
-  const { id, username, name, substack_url, filename, description, posted_at } = photo;
+  const { username, name, substack_url, filename, description, posted_at } = photo;
 
   return (
     <Box
       component="article"
-      key={id}
       sx={{ mb: 4, pb: 4, borderBottom: '1px solid', borderColor: 'divider' }}
     >
       {imgError ? (

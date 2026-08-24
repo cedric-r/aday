@@ -93,7 +93,7 @@ describe('UserTable', () => {
       new Response(JSON.stringify(users), { status: 200 }),
     );
 
-    vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
+    vi.spyOn(globalThis, 'confirm').mockReturnValueOnce(true);
     mockFetch.mockResolvedValueOnce(
       new Response(JSON.stringify({ message: 'User deleted.' }), { status: 200 }),
     );

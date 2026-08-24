@@ -47,10 +47,12 @@ export const SubmissionsPanel = () => {
     const timer = setInterval(() => { void loadSubmissions(true); }, POLL_MS);
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // loadSubmissions is defined inside the component; stable-ref approach via isPollingRef
+    // avoids adding it as a dependency (would cause infinite re-registration of the interval)
   }, []);
 
   const handleExport = () => {
-    window.location.href = '/api/admin/export.php';
+    globalThis.location.href = '/api/admin/export.php';
   };
 
   if (isLoading) {

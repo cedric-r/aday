@@ -50,6 +50,7 @@ AuthContext (US-7) is a hard dependency for all protected routes. Routing (App.t
 | `src/store/baseApi.ts` | RTK Query `createApi` with `baseUrl: '/'` and `fetchBaseQuery` | Path A |
 | `src/main.tsx` | Vite entry — wrap `<App>` in `<Provider store={store}>` | Path A |
 | `src/setupTests.ts` | Jest/Vitest config — `@testing-library/jest-dom` imports | Path A |
+| `tsconfig.json` | Added `"ES2022.Intl"` to `lib` — required for `Intl.supportedValuesOf()` in TimezoneSelect | N/A — config |
 
 ### 1. Zod Schemas
 
@@ -68,6 +69,7 @@ All API responses are validated through Zod before use. Types are derived via `z
 | File | Purpose | TDD Path |
 |------|---------|----------|
 | `src/context/AuthContext.tsx` | Auth state, `login()`, `logout()`, `useAuth()` hook, calls `GET /api/me.php` on mount | Path A |
+| `src/context/AuthContext.test.tsx` | 6 tests: initial load, unauthenticated, login success/401/403, logout | Path A |
 | `src/components/Header.tsx` | Logo img + `<Nav />` | Path A |
 | `src/components/Nav.tsx` | Conditional nav links via `useAuth()`, `<NavLink>` with active class | Path A |
 | `src/components/ProtectedRoute.tsx` | Spinner → redirect `/login` → redirect `/` → render children | Path A |

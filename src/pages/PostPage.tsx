@@ -19,7 +19,7 @@ const MAX_FILE_BYTES = 15 * 1024 * 1024;
 type SubmitState = 'idle' | 'success' | 'error';
 
 export const PostPage = () => {
-  const { user } = useAuth();
+  const {} = useAuth(); // auth required by ProtectedRoute; user fields available when contract adds timezone
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   const [fileSizeWarning, setFileSizeWarning] = useState(false);
@@ -106,7 +106,7 @@ export const PostPage = () => {
 
   const windowOpen = status?.window_open ?? false;
   const eventDate = status?.event_date ?? '';
-  const userTimezone = user?.status ? 'UTC' : 'UTC'; // will be from user profile once contract adds it
+  const userTimezone = 'UTC'; // TODO: serve from API when contract is updated
 
   return (
     <Box component="main" sx={{ maxWidth: 600, mx: 'auto', mt: 6, px: 2 }}>

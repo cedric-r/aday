@@ -47,7 +47,7 @@ export const UserTable = ({ onEdit }: Props) => {
   };
 
   const handleDelete = async (user: AdminUser) => {
-    if (!window.confirm(`Delete user "${user.username}"?`)) return;
+    if (!globalThis.confirm(`Delete user "${user.username}"?`)) return;
     await fetch(`/api/admin/users.php?id=${user.id}`, { method: 'DELETE' });
     void loadUsers();
   };

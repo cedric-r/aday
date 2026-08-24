@@ -80,4 +80,48 @@ describe('UserModal', () => {
     });
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
   });
+
+  it('shows error message when POST fails', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: 'Username taken' }), { status: 409 }),
+    );
+
+    const onClose = vi.fn();
+    const onSaved = vi.fn();
+
+    render(<UserModal mode="add" onClose={onClose} onSaved={onSaved} />);
+
+    await userEvent.type(screen.getByLabelText(/username/i), 'alice');
+    await userEvent.type(screen.getByLabelText(/display name/i), 'Alice');
+    await userEvent.type(screen.getByLabelText(/email/i), 'alice@example.com');
+    await userEvent.type(screen.getByLabelText(/password/i), 'password123');
+
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/failed to create user/i)).toBeInTheDocument(),
+    );
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('shows error message when PUT fails', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: 'Server error' }), { status: 500 }),
+    );
+
+    const onClose = vi.fn();
+    const onSaved = vi.fn();
+    const user = { id: 1, username: 'alice', name: 'Alice', email: 'a@a.com', timezone: 'Europe/London', status: 'validated' as const, is_admin: false, created_at: '2026-01-01' };
+
+    render(<UserModal mode="edit" user={user} onClose={onClose} onSaved={onSaved} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/failed to update user/i)).toBeInTheDocument(),
+    );
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
 });
