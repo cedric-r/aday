@@ -204,4 +204,73 @@ final class AdminUsersTest extends TestCase
         $this->assertSame(200, $res['status']);
         $this->assertSame('2026-12-01', $res['json']['event_date']);
     }
+
+    // -----------------------------------------------------------------------
+    // PUT — substack_url + password fields
+    // -----------------------------------------------------------------------
+
+    public function test_put_updates_substack_url(): void
+    {
+        $admin = TestHelper::createUser(['username' => 'admin', 'email' => 'admin@example.com', 'is_admin' => 1]);
+        $user  = TestHelper::createUser(['username' => 'alice', 'email' => 'alice@example.com']);
+        $_SESSION['user_id'] = $admin['id'];
+
+        $res = TestHelper::request($this->usersFile, 'PUT', [
+            'substack_url' => 'https://alice.substack.com',
+        ], ['id' => $user['id']]);
+
+        $this->assertSame(200, $res['status']);
+
+        $row = db()->query("SELECT substack_url FROM users WHERE id = {$user['id']}")->fetch();
+        $this->assertSame('https://alice.substack.com', $row['substack_url']);
+    }
+
+    public function test_put_clears_substack_url_when_sent_as_empty_string(): void
+    {
+        $admin = TestHelper::createUser(['username' => 'admin', 'email' => 'admin@example.com', 'is_admin' => 1]);
+        $user  = TestHelper::createUser([
+            'username'     => 'bob',
+            'email'        => 'bob@example.com',
+            'substack_url' => 'https://bob.substack.com',
+        ]);
+        $_SESSION['user_id'] = $admin['id'];
+
+        $res = TestHelper::request($this->usersFile, 'PUT', [
+            'substack_url' => '',
+        ], ['id' => $user['id']]);
+
+        $this->assertSame(200, $res['status']);
+
+        $row = db()->query("SELECT substack_url FROM users WHERE id = {$user['id']}")->fetch();
+        $this->assertNull($row['substack_url'], 'Empty substack_url must be stored as NULL');
+    }
+
+    public function test_put_resets_password_when_provided(): void
+    {
+        $admin = TestHelper::createUser(['username' => 'admin', 'email' => 'admin@example.com', 'is_admin' => 1]);
+        $user  = TestHelper::createUser(['username' => 'carol', 'email' => 'carol@example.com']);
+        $_SESSION['user_id'] = $admin['id'];
+
+        $res = TestHelper::request($this->usersFile, 'PUT', [
+            'password' => 'newpassword99',
+        ], ['id' => $user['id']]);
+
+        $this->assertSame(200, $res['status']);
+
+        $row = db()->query("SELECT password_hash FROM users WHERE id = {$user['id']}")->fetch();
+        $this->assertTrue(password_verify('newpassword99', $row['password_hash']));
+    }
+
+    public function test_put_short_password_returns_422(): void
+    {
+        $admin = TestHelper::createUser(['username' => 'admin', 'email' => 'admin@example.com', 'is_admin' => 1]);
+        $user  = TestHelper::createUser(['username' => 'dave', 'email' => 'dave@example.com']);
+        $_SESSION['user_id'] = $admin['id'];
+
+        $res = TestHelper::request($this->usersFile, 'PUT', [
+            'password' => 'short',
+        ], ['id' => $user['id']]);
+
+        $this->assertSame(422, $res['status']);
+    }
 }
