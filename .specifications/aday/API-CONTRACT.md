@@ -116,6 +116,7 @@ Returns a random captcha question. Also stores the question index in the session
 **Error Responses**
 | Code | Condition |
 |---|---|
+| 405 | Non-POST request |
 | 422 | Validation failure — body: `{"errors": {"field": "message"}}` |
 | 409 | Conflict — body: `{"field": "username|email", "error": "..."}` |
 | 423 | Registration closed (today is the event date) |
@@ -375,6 +376,8 @@ If no params: returns latest 20 photos, newest first.
 > `next_cursor` is the `posted_at` of the oldest photo in the response, or `null` if no more photos exist.
 > Use `?before=<next_cursor>` to load the next page.
 > Use `?after=<latest_posted_at>` for polling (returns new photos since that timestamp).
+>
+> **Polling note:** When using `?after=`, the React client should track the newest `posted_at` it has seen in a `useRef` and use that as the next `after` value. The `next_cursor` field reflects the oldest photo in the response and is not meaningful for the polling variant — clients should ignore it when polling.
 
 ---
 
@@ -389,7 +392,7 @@ Public. Returns the current event date and posting window status.
 {
   "window_open": null,
   "event_date": "2026-08-24",
-  "message": "Posting window is open"
+  "message": "Posting window status unknown (not authenticated)."
 }
 ```
 > `window_open` is `null` when unauthenticated (cannot compute without user timezone).
