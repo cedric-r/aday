@@ -13,7 +13,9 @@
     "autoload": {
         "files": [
             "config/env.php",
-            "config/db.php"
+            "config/db.php",
+            "lib/ResponseException.php",
+            "lib/Response.php"
         ]
     },
     "autoload-dev": {
