@@ -219,6 +219,14 @@ export const UserModal = ({ mode, user, onClose, onSaved }: Props) => {
             sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}
           >
             <TextField
+              label="Username"
+              id="modal-username-edit"
+              value={user?.username ?? ''}
+              disabled
+              inputProps={{ 'aria-label': 'Username' }}
+              InputLabelProps={{ htmlFor: 'modal-username-edit' }}
+            />
+            <TextField
               {...editForm.register('name')}
               label="Display name"
               id="modal-name-edit"

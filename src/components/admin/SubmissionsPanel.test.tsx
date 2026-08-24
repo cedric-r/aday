@@ -16,6 +16,44 @@ describe('SubmissionsPanel', () => {
     vi.stubGlobal('fetch', mockFetch);
   });
 
+  it('deletes submission on confirm and refreshes list', async () => {
+    vi.spyOn(globalThis, 'setInterval').mockReturnValue(0 as unknown as ReturnType<typeof setInterval>);
+    vi.spyOn(globalThis, 'confirm').mockReturnValueOnce(true);
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify(submissions), { status: 200 }));
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ message: 'Deleted.' }), { status: 200 }));
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify([submissions[1]]), { status: 200 }));
+
+    render(<SubmissionsPanel />);
+    await waitFor(() => screen.getByText('Morning light'));
+
+    const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
+    await userEvent.click(deleteButtons[0]);
+
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('submissions.php?id=1'),
+        expect.objectContaining({ method: 'DELETE' }),
+      ),
+    );
+  });
+
+  it('shows error alert when delete fails', async () => {
+    vi.spyOn(globalThis, 'setInterval').mockReturnValue(0 as unknown as ReturnType<typeof setInterval>);
+    vi.spyOn(globalThis, 'confirm').mockReturnValueOnce(true);
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify(submissions), { status: 200 }));
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify({ error: 'Not found' }), { status: 404 }));
+
+    render(<SubmissionsPanel />);
+    await waitFor(() => screen.getByText('Morning light'));
+
+    const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
+    await userEvent.click(deleteButtons[0]);
+
+    await waitFor(() =>
+      expect(screen.getByText(/failed to delete/i)).toBeInTheDocument(),
+    );
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();

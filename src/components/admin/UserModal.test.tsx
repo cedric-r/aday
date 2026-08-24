@@ -29,9 +29,9 @@ describe('UserModal', () => {
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
   });
 
-  it('Edit mode: hides username and password fields', () => {
+  it('Edit mode: shows read-only username, hides add-only password', () => {
     render(<UserModal mode="edit" user={existingUser} onClose={vi.fn()} onSaved={vi.fn()} />);
-    expect(screen.queryByLabelText(/^username$/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/^username$/i)).toBeDisabled();
     expect(screen.queryByLabelText(/^password$/i)).not.toBeInTheDocument();
   });
 
@@ -140,7 +140,14 @@ describe('UserModal', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('shows status select in edit mode pre-populated from user', async () => {
+  it('shows read-only username at top of edit form', () => {
+    render(<UserModal mode="edit" user={existingUser} onClose={vi.fn()} onSaved={vi.fn()} />);
+    const usernameField = screen.getByLabelText(/username/i);
+    expect(usernameField).toBeDisabled();
+    expect(usernameField).toHaveValue('alice');
+  });
+
+    it('shows status select in edit mode pre-populated from user', async () => {
     const user = { id: 1, username: 'alice', name: 'Alice', email: 'a@a.com', substack_url: null, timezone: 'Europe/London', status: 'pending' as const, is_admin: false, created_at: '2026-01-01' };
     render(<UserModal mode="edit" user={user} onClose={vi.fn()} onSaved={vi.fn()} />);
     // Status field should be rendered

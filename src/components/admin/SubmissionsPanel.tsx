@@ -7,6 +7,7 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import Alert from '@mui/material/Alert';
 import Typography from '@mui/material/Typography';
 import { SubmissionListSchema } from '@/schemas/admin.schema';
 import type { Submission } from '@/schemas/admin.schema';
@@ -51,6 +52,19 @@ export const SubmissionsPanel = () => {
     // avoids adding it as a dependency (would cause infinite re-registration of the interval)
   }, []);
 
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const handleDelete = async (s: Submission) => {
+    if (!globalThis.confirm(`Delete submission from ${s.name}?`)) return;
+    setActionError(null);
+    const res = await fetch(`/api/admin/submissions.php?id=${s.id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      setActionError('Failed to delete submission. Please try again.');
+      return;
+    }
+    void loadSubmissions(false);
+  };
+
   const handleExport = () => {
     globalThis.location.href = '/api/admin/export.php';
   };
@@ -61,6 +75,7 @@ export const SubmissionsPanel = () => {
 
   return (
     <Box>
+      {actionError && <Alert severity="error" sx={{ mb: 2 }}>{actionError}</Alert>}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
         <Typography variant="h6">
           Submissions ({submissions.length} {submissions.length === 1 ? 'photo' : 'photos'})
@@ -80,6 +95,7 @@ export const SubmissionsPanel = () => {
               <TableCell>Photographer</TableCell>
               <TableCell>Description</TableCell>
               <TableCell>Posted at</TableCell>
+              <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -106,6 +122,16 @@ export const SubmissionsPanel = () => {
                   {new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(
                     new Date(s.posted_at),
                   )}
+                </TableCell>
+              <TableCell>
+                  <Button
+                    size="small"
+                    color="error"
+                    variant="outlined"
+                    onClick={() => { void handleDelete(s); }}
+                  >
+                    Delete
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

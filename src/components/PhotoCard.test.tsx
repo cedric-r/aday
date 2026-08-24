@@ -24,7 +24,7 @@ const renderCard = (p: Photo = photo) =>
 describe('PhotoCard', () => {
   it('renders the photo image with correct src', () => {
     renderCard();
-    const img = screen.getByRole('img', { name: /alice example/i });
+    const img = screen.getByRole('img', { name: /morning light/i });
     expect(img).toHaveAttribute('src', '/uploads/alice/abc123.jpg');
   });
 
@@ -58,7 +58,7 @@ describe('PhotoCard', () => {
     const img = screen.getByRole('img');
     fireEvent.error(img);
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
-    expect(screen.getByText(/image unavailable/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/image unavailable/i)).toBeInTheDocument();
   });
 
   it('renders without substack link when substack_url is null', () => {

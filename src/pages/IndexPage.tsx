@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
+import Avatar from '@mui/material/Avatar';
+import Chip from '@mui/material/Chip';
+import MuiLink from '@mui/material/Link';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import { PhotographerListSchema } from '@/schemas/photographer.schema';
@@ -67,36 +70,49 @@ export const IndexPage = () => {
 
       {letters.map((letter) => (
         <Box key={letter} sx={{ mb: 3 }}>
-          <Typography variant="h5" component="h2" sx={{ fontWeight: 700, mb: 1 }}>
+          <Typography variant="h5" component="h2" sx={{ fontWeight: 700, mb: 1, color: 'primary.main' }}>
             {letter}
           </Typography>
 
           {groups[letter].map((p) => (
-            <Box key={p.username} sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 0.5 }}>
-              <Typography
-                component={Link}
-                to={`/photographers/${p.username}`}
-                sx={{ textDecoration: 'none', color: 'text.primary', '&:hover': { textDecoration: 'underline' } }}
-              >
-                {p.name}
-              </Typography>
-
-              {p.substack_url && (
+            <Box
+              key={p.username}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                py: 1,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+              }}
+            >
+              <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40, fontSize: 16, flexShrink: 0 }}>
+                {p.name.charAt(0).toUpperCase()}
+              </Avatar>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography
-                  component="a"
-                  href={p.substack_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  variant="body2"
-                  sx={{ color: 'primary.main' }}
+                  component={Link}
+                  to={'/photographers/' + p.username}
+                  variant='body1'
+                  fontWeight={600}
+                  sx={{ textDecoration: 'none', color: 'text.primary', '&:hover': { textDecoration: 'underline' } }}
                 >
-                  Substack
+                  {p.name}
                 </Typography>
-              )}
-
-              <Typography variant="caption" color="text.secondary">
-                {p.photo_count} {p.photo_count === 1 ? 'photo' : 'photos'}
-              </Typography>
+                {p.substack_url && (
+                  <Box>
+                    <MuiLink href={p.substack_url} target='_blank' rel='noopener noreferrer' variant='caption' color='text.secondary'>
+                      Substack
+                    </MuiLink>
+                  </Box>
+                )}
+              </Box>
+              <Chip
+                label={p.photo_count + ' ' + (p.photo_count === 1 ? 'photo' : 'photos')}
+                size='small'
+                variant='outlined'
+                color='primary'
+              />
             </Box>
           ))}
         </Box>

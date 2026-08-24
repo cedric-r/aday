@@ -36,9 +36,9 @@ describe('IndexPage', () => {
     await waitFor(() => expect(screen.getByText('Alice Example')).toBeInTheDocument());
 
     // A section header for names starting with A and B and C
-    expect(screen.getByText('A')).toBeInTheDocument();
-    expect(screen.getByText('B')).toBeInTheDocument();
-    expect(screen.getByText('C')).toBeInTheDocument();
+    expect(screen.getAllByText('A').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('B').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('C').length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders links to photographer pages', async () => {
