@@ -1,0 +1,26 @@
+RewriteEngine On
+Options -Indexes
+
+# ---- Upload limits (mod_php per-dir override; php.ini defaults are 2M/8M) ----
+php_value upload_max_filesize 16M
+php_value post_max_size 17M
+
+# ---- Security: never serve private files / dirs ----
+RewriteRule ^(\.env|composer\.(json|lock)|phpstan\.neon|phpunit\.xml|package(-lock)?\.json|vite\.config\.ts|eslint\.config\.js|tsconfig.*\.json)$ - [F,L]
+RewriteRule ^(data|logs|coverage|\.git|\.specifications|node_modules|src|tests|vendor|lib|config|migrations|scripts|docs|public)/ - [F,L]
+
+# ---- API and PHP endpoints reach mod_php directly ----
+RewriteCond %{REQUEST_URI} ^/api/ [OR]
+RewriteCond %{REQUEST_URI} ^/setup\.php$
+RewriteRule .* - [L]
+
+# ---- Static asset aliases (Vite builds into dist/) ----
+RewriteRule ^assets/(.*)$ /dist/assets/$1 [L]
+RewriteRule ^adayinthelife\.png$ /dist/adayinthelife.png [L]
+
+# ---- SPA entry point ----
+DirectoryIndex /dist/index.html
+
+# ---- SPA fallback: any other path -> dist/index.html ----
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ /dist/index.html [L]
