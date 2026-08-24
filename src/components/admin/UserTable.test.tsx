@@ -8,7 +8,7 @@ const mockFetch = vi.fn<typeof fetch>();
 
 const mockAuth = (username = 'admin') => {
   vi.spyOn(AuthModule, 'useAuth').mockReturnValue({
-    user: { authenticated: true, username, name: 'Admin', is_admin: true, status: 'validated' },
+    user: { authenticated: true, username, name: 'Admin', is_admin: true, status: 'validated', timezone: 'Europe/London' },
     isLoading: false,
     login: vi.fn(),
     logout: vi.fn(),
@@ -85,6 +85,48 @@ describe('UserTable', () => {
     renderTable();
     await waitFor(() =>
       expect(screen.getByText(/failed to load users/i)).toBeInTheDocument(),
+    );
+  });
+
+  it('shows error alert when Approve returns 4xx', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify(users), { status: 200 }),
+    );
+
+    renderTable();
+    await waitFor(() => screen.getByText('alice'));
+
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: 'Server error' }), { status: 500 }),
+    );
+
+    const approveBtn = screen.getByRole('button', { name: /approve/i });
+    await userEvent.click(approveBtn);
+
+    await waitFor(() =>
+      expect(screen.getByText(/failed to approve user/i)).toBeInTheDocument(),
+    );
+  });
+
+  it('shows error alert when Delete returns 4xx', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify(users), { status: 200 }),
+    );
+
+    vi.spyOn(globalThis, 'confirm').mockReturnValueOnce(true);
+    renderTable();
+    await waitFor(() => screen.getByText('alice'));
+
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: 'Cannot delete' }), { status: 403 }),
+    );
+
+    const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
+    const bobDeleteBtn = deleteButtons.find((btn) => btn.closest('tr')?.textContent?.includes('b@b.com'));
+    await userEvent.click(bobDeleteBtn!);
+
+    await waitFor(() =>
+      expect(screen.getByText(/failed to delete user/i)).toBeInTheDocument(),
     );
   });
 

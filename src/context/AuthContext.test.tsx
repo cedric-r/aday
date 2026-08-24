@@ -50,7 +50,7 @@ describe('AuthContext', () => {
   it('sets user when me.php returns authenticated', async () => {
     mockFetch.mockResolvedValueOnce(
       new Response(
-        JSON.stringify({ authenticated: true, username: 'alice', name: 'Alice', is_admin: false, status: 'validated' }),
+        JSON.stringify({ authenticated: true, username: 'alice', name: 'Alice', is_admin: false, status: 'validated', timezone: 'Europe/London' }),
         { status: 200 },
       ),
     );
@@ -69,7 +69,7 @@ describe('AuthContext', () => {
 
     mockFetch.mockResolvedValueOnce(
       new Response(
-        JSON.stringify({ username: 'alice', name: 'Alice', is_admin: false, status: 'validated' }),
+        JSON.stringify({ username: 'alice', name: 'Alice', is_admin: false, status: 'validated', timezone: 'Europe/London' }),
         { status: 200 },
       ),
     );
@@ -138,7 +138,7 @@ describe('AuthContext', () => {
   it('logout() posts to logout.php and clears user', async () => {
     mockFetch.mockResolvedValueOnce(
       new Response(
-        JSON.stringify({ authenticated: true, username: 'alice', name: 'Alice', is_admin: false, status: 'validated' }),
+        JSON.stringify({ authenticated: true, username: 'alice', name: 'Alice', is_admin: false, status: 'validated', timezone: 'Europe/London' }),
         { status: 200 },
       ),
     );

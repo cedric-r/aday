@@ -9,7 +9,7 @@ const mockFetch = vi.fn<typeof fetch>();
 
 const mockAuth = () => {
   vi.spyOn(AuthModule, 'useAuth').mockReturnValue({
-    user: { authenticated: true, username: 'alice', name: 'Alice', is_admin: false, status: 'validated' },
+    user: { authenticated: true, username: 'alice', name: 'Alice', is_admin: false, status: 'validated', timezone: 'Europe/London' },
     isLoading: false,
     login: vi.fn(),
     logout: vi.fn(),

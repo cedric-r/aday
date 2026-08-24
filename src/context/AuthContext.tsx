@@ -65,6 +65,7 @@ export const AuthProvider = ({ children }: Props) => {
       name: parsed.name,
       is_admin: parsed.is_admin,
       status: parsed.status,
+      timezone: parsed.timezone,
     });
   }, []);
 

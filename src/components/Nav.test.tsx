@@ -47,7 +47,7 @@ describe('Nav', () => {
   });
 
   it('shows Post and Log out for authenticated non-admin; hides Log in and Admin', () => {
-    mockUseAuth({ authenticated: true, username: 'alice', name: 'Alice', is_admin: false, status: 'validated' });
+    mockUseAuth({ authenticated: true, username: 'alice', name: 'Alice', is_admin: false, status: 'validated', timezone: 'Europe/London' });
     renderNav();
     expect(screen.getByRole('link', { name: /post/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
@@ -56,7 +56,7 @@ describe('Nav', () => {
   });
 
   it('shows Admin and Log out for admin user; hides Post and Log in', () => {
-    mockUseAuth({ authenticated: true, username: 'admin', name: 'Admin', is_admin: true, status: 'validated' });
+    mockUseAuth({ authenticated: true, username: 'admin', name: 'Admin', is_admin: true, status: 'validated', timezone: 'Europe/London' });
     renderNav();
     expect(screen.getByRole('link', { name: /admin/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
@@ -65,7 +65,7 @@ describe('Nav', () => {
   });
 
   it('calls logout() when Log out button clicked', async () => {
-    mockUseAuth({ authenticated: true, username: 'alice', name: 'Alice', is_admin: false, status: 'validated' });
+    mockUseAuth({ authenticated: true, username: 'alice', name: 'Alice', is_admin: false, status: 'validated', timezone: 'Europe/London' });
     renderNav();
     await userEvent.click(screen.getByRole('button', { name: /log out/i }));
     expect(mockLogout).toHaveBeenCalledOnce();

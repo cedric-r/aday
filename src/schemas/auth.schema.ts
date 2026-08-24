@@ -6,6 +6,7 @@ export const MeAuthenticatedSchema = z.object({
   name: z.string(),
   is_admin: z.boolean(),
   status: z.string(),
+  timezone: z.string(),
 });
 
 export const MeUnauthenticatedSchema = z.object({
@@ -22,6 +23,7 @@ export const LoginResponseSchema = z.object({
   name: z.string(),
   is_admin: z.boolean(),
   status: z.string(),
+  timezone: z.string(),
 });
 
 export const LogoutResponseSchema = z.object({

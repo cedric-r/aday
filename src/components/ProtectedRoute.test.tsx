@@ -50,20 +50,20 @@ describe('ProtectedRoute', () => {
   });
 
   it('renders children for authenticated user (no admin requirement)', () => {
-    mockUseAuth({ authenticated: true, username: 'alice', name: 'Alice', is_admin: false, status: 'validated' });
+    mockUseAuth({ authenticated: true, username: 'alice', name: 'Alice', is_admin: false, status: 'validated', timezone: 'Europe/London' });
     renderInRouter(false);
     expect(screen.getByText('Protected content')).toBeInTheDocument();
   });
 
   it('redirects to / when non-admin accesses admin-only route', () => {
-    mockUseAuth({ authenticated: true, username: 'alice', name: 'Alice', is_admin: false, status: 'validated' });
+    mockUseAuth({ authenticated: true, username: 'alice', name: 'Alice', is_admin: false, status: 'validated', timezone: 'Europe/London' });
     renderInRouter(true);
     expect(screen.getByText('Home page')).toBeInTheDocument();
     expect(screen.queryByText('Protected content')).not.toBeInTheDocument();
   });
 
   it('renders children for admin on admin-only route', () => {
-    mockUseAuth({ authenticated: true, username: 'admin', name: 'Admin', is_admin: true, status: 'validated' });
+    mockUseAuth({ authenticated: true, username: 'admin', name: 'Admin', is_admin: true, status: 'validated', timezone: 'Europe/London' });
     renderInRouter(true);
     expect(screen.getByText('Protected content')).toBeInTheDocument();
   });

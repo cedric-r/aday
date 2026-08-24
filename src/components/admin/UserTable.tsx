@@ -9,6 +9,7 @@ import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+import Alert from '@mui/material/Alert';
 import { AdminUserListSchema } from '@/schemas/admin.schema';
 import type { AdminUser } from '@/schemas/admin.schema';
 import { useAuth } from '@/context/AuthContext';
@@ -22,6 +23,7 @@ export const UserTable = ({ onEdit }: Props) => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -38,17 +40,27 @@ export const UserTable = ({ onEdit }: Props) => {
   useEffect(() => { void loadUsers(); }, [loadUsers]);
 
   const handleApprove = async (user: AdminUser) => {
-    await fetch(`/api/admin/users.php?id=${user.id}`, {
+    setActionError(null);
+    const res = await fetch(`/api/admin/users.php?id=${user.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'validated' }),
     });
+    if (!res.ok) {
+      setActionError('Failed to approve user. Please try again.');
+      return;
+    }
     void loadUsers();
   };
 
   const handleDelete = async (user: AdminUser) => {
     if (!globalThis.confirm(`Delete user "${user.username}"?`)) return;
-    await fetch(`/api/admin/users.php?id=${user.id}`, { method: 'DELETE' });
+    setActionError(null);
+    const res = await fetch(`/api/admin/users.php?id=${user.id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      setActionError('Failed to delete user. Please try again.');
+      return;
+    }
     void loadUsers();
   };
 
@@ -56,7 +68,11 @@ export const UserTable = ({ onEdit }: Props) => {
   if (error) return <Typography color="error">{error}</Typography>;
 
   return (
-    <Table size="small">
+    <Box>
+      {actionError && (
+        <Alert severity="error" sx={{ mb: 2 }}>{actionError}</Alert>
+      )}
+      <Table size="small">
       <TableHead>
         <TableRow>
           <TableCell>Username</TableCell>
@@ -118,5 +134,6 @@ export const UserTable = ({ onEdit }: Props) => {
         })}
       </TableBody>
     </Table>
+    </Box>
   );
 };
