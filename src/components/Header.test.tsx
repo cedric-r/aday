@@ -29,9 +29,9 @@ describe('Header', () => {
         <Header />
       </MemoryRouter>,
     );
-    const logo = screen.getByRole('img', { name: /a day in the life/i });
+    const logo = screen.getByRole('img', { name: /document your life/i });
     expect(logo).toBeInTheDocument();
-    expect(logo).toHaveAttribute('src', '/adayinthelife.png');
+    expect(logo).toHaveAttribute('src', '/documentyourlife.png');
   });
 
   it('logo links to home page', () => {
@@ -40,7 +40,7 @@ describe('Header', () => {
         <Header />
       </MemoryRouter>,
     );
-    const link = screen.getByRole('link', { name: /a day in the life/i });
+    const link = screen.getByRole('link', { name: /document your life/i });
     expect(link).toHaveAttribute('href', '/');
   });
 });

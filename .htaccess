@@ -17,7 +17,7 @@ RewriteRule .* - [L]
 
 # ---- Static asset aliases (Vite builds into dist/) ----
 RewriteRule ^assets/(.*)$ /dist/assets/$1 [L]
-RewriteRule ^adayinthelife\.png$ /dist/adayinthelife.png [L]
+RewriteRule ^documentyourlife\.png$ /dist/documentyourlife.png [L]
 
 # ---- SPA entry point ----
 DirectoryIndex /dist/index.html

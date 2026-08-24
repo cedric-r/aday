@@ -20,8 +20,8 @@ export const Header = () => (
       >
         <Box
           component="img"
-          src="/adayinthelife.png"
-          alt="A Day In The Life"
+          src="/documentyourlife.png"
+          alt="Document Your Life"
           sx={{ height: 48, objectFit: 'contain' }}
         />
       </Box>
