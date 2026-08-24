@@ -9,6 +9,10 @@ session_start();
 
 header('Content-Type: application/json; charset=utf-8');
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    respond(405, 'Method not allowed.');
+}
+
 // ── Parse input ──────────────────────────────────────────────────────────────
 
 $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
@@ -126,7 +130,7 @@ $user   = [
 // ── Send admin validation email (failure is non-fatal) ────────────────────────
 
 try {
-    (new Mailer())->sendAdminValidation($user);
+    Mailer::make()->sendAdminValidation($user);
 } catch (Throwable) {
     // Logged inside Mailer; registration succeeds regardless.
 }

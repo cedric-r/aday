@@ -149,22 +149,23 @@ if ($method === 'DELETE') {
         respond(400, 'id is required.');
     }
 
-    // Block self-delete.
-    if ($id === (int) $admin['id']) {
-        respond(400, 'Cannot delete your own account.');
-    }
-
-    // Block deleting last admin.
-    $stmt = db()->query('SELECT COUNT(*) as cnt FROM users WHERE is_admin = 1');
-    $countRow = $stmt->fetch();
-    $adminCount = (int) ($countRow ? $countRow['cnt'] : 0);
-
+    // Fetch target first (needed by both guards below).
     $targetStmt = db()->prepare('SELECT is_admin FROM users WHERE id = :id');
     $targetStmt->execute([':id' => $id]);
     $target = $targetStmt->fetch();
 
-    if ($target !== false && (int) $target['is_admin'] === 1 && $adminCount <= 1) {
-        respond(400, 'Cannot delete the last admin account.');
+    // Block deleting the last admin (checked before self-delete so this guard is reachable
+    // when there is exactly 1 admin and they try to delete themselves).
+    if ($target !== false && (int) $target['is_admin'] === 1) {
+        $adminCount = (int) db()->query('SELECT COUNT(*) FROM users WHERE is_admin = 1')->fetchColumn();
+        if ($adminCount <= 1) {
+            respond(400, 'Cannot delete the last admin account.');
+        }
+    }
+
+    // Block self-delete.
+    if ($id === (int) $admin['id']) {
+        respond(400, 'Cannot delete your own account.');
     }
 
     db()->prepare('DELETE FROM users WHERE id = :id')->execute([':id' => $id]);
