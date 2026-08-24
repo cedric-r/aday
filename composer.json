@@ -1,0 +1,37 @@
+{
+    "name": "aday/photo-publishing",
+    "description": "A Day In The Life — Vanilla PHP + SQLite photo publishing system",
+    "type": "project",
+    "require": {
+        "php": "^8.3",
+        "phpmailer/phpmailer": "^6.9"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11",
+        "phpstan/phpstan": "^2"
+    },
+    "autoload": {
+        "files": [
+            "config/env.php",
+            "config/db.php"
+        ]
+    },
+    "autoload-dev": {
+        "files": [
+            "tests/bootstrap.php"
+        ]
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit --colors=always",
+        "test-coverage": "vendor/bin/phpunit --colors=always --coverage-text",
+        "analyse": "vendor/bin/phpstan analyse --no-progress",
+        "check": [
+            "@analyse",
+            "@test"
+        ]
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}

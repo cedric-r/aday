@@ -1,0 +1,20 @@
+# Environment — never commit secrets
+.env
+
+# Runtime data directories — created by the application at runtime
+data/
+uploads/
+logs/*.log
+
+# Composer vendor directory
+vendor/
+
+# PHPUnit cache
+.phpunit.cache/
+.phpunit.result.cache
+
+# OS / editor artefacts
+.DS_Store
+Thumbs.db
+*.swp
+*.swo

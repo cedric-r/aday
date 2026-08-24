@@ -1,0 +1,11 @@
+parameters:
+    level: 6
+    paths:
+        - config
+        - lib
+        - api
+        - migrations
+    excludePaths:
+        - vendor
+    bootstrapFiles:
+        - vendor/autoload.php
