@@ -30,7 +30,7 @@ $get = static fn (string $key): string => trim((string) ($data[$key] ?? ''));
 
 if ($method === 'GET') {
     $stmt = db()->query(
-        'SELECT id, username, name, email, timezone, status, is_admin, created_at
+        'SELECT id, username, name, substack_url, email, timezone, status, is_admin, created_at
          FROM users ORDER BY name ASC'
     );
     echo json_encode($stmt->fetchAll());
@@ -94,19 +94,28 @@ if ($method === 'PUT') {
         respond(400, 'id is required.');
     }
 
-    $name     = $get('name');
-    $email    = $get('email');
-    $timezone = $get('timezone');
-    $status   = $get('status');
-    $isAdmin  = isset($data['is_admin']) ? (int) $data['is_admin'] : null;
+    $name        = $get('name');
+    $email       = $get('email');
+    $timezone    = $get('timezone');
+    $status      = $get('status');
+    $isAdmin     = isset($data['is_admin']) ? (int) $data['is_admin'] : null;
+    $password    = isset($data['password']) ? (string) $data['password'] : null;
+    $substackRaw = array_key_exists('substack_url', $data) ? $data['substack_url'] : null;
 
     // Block self-demotion of admin flag.
     if ($id === (int) $admin['id'] && $isAdmin === 0) {
         respond(400, 'Cannot remove your own admin flag.');
     }
 
-    $fields  = [];
-    $params  = [':id' => $id];
+    // Validate optional password reset.
+    if ($password !== null && $password !== '') {
+        if (strlen($password) < 8) {
+            respond(422, ['errors' => ['password' => 'Password must be at least 8 characters.']]);
+        }
+    }
+
+    $fields = [];
+    $params = [':id' => $id];
 
     if ($name !== '') {
         $fields[]        = 'name = :name';
@@ -121,12 +130,22 @@ if ($method === 'PUT') {
         $params[':timezone'] = $timezone;
     }
     if ($status !== '') {
-        $fields[]           = 'status = :status';
-        $params[':status']  = $status;
+        $fields[]          = 'status = :status';
+        $params[':status'] = $status;
     }
     if ($isAdmin !== null) {
         $fields[]            = 'is_admin = :is_admin';
         $params[':is_admin'] = $isAdmin;
+    }
+    // substack_url: present in payload (even as empty string) → update; absent → skip.
+    if ($substackRaw !== null) {
+        $fields[]                 = 'substack_url = :substack_url';
+        $params[':substack_url']  = ($substackRaw === '') ? null : (string) $substackRaw;
+    }
+    // password: non-empty string already validated above.
+    if ($password !== null && $password !== '') {
+        $fields[]                   = 'password_hash = :password_hash';
+        $params[':password_hash']   = password_hash($password, PASSWORD_BCRYPT);
     }
 
     if ($fields === []) {

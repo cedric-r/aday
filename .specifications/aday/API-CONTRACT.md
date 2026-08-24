@@ -184,9 +184,13 @@ Update a user's fields.
   "email": "string",
   "timezone": "string",
   "status": "pending|validated",
-  "is_admin": 0
+  "is_admin": 0,
+  "substack_url": "string | empty string to clear",
+  "password": "string — min 8 chars; omit or send empty to keep existing"
 }
 ```
+> `substack_url`: if key is present and value is empty string, stored as `null` (clears the URL). If key is absent, field is unchanged.
+> `password`: if non-empty, must be ≥ 8 characters; hashed with bcrypt before storing.
 
 **Response — 200 OK**
 ```json
