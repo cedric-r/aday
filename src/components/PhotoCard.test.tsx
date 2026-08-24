@@ -61,8 +61,8 @@ describe('PhotoCard', () => {
     expect(screen.getByText(/image unavailable/i)).toBeInTheDocument();
   });
 
-  it('renders without substack link when substack_url is empty', () => {
-    renderCard({ ...photo, substack_url: '' });
+  it('renders without substack link when substack_url is null', () => {
+    renderCard({ ...photo, substack_url: null });
     expect(screen.queryByRole('link', { name: /substack/i })).not.toBeInTheDocument();
   });
 });

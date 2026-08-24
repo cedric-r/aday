@@ -82,4 +82,21 @@ describe('PhotographerPage', () => {
       expect(screen.getByText(/404/i)).toBeInTheDocument(),
     );
   });
+
+  it('renders without error when substack_url is null', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          username: 'alice',
+          name: 'Alice Example',
+          substack_url: null,
+          photos: [],
+        }),
+        { status: 200 },
+      ),
+    );
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Example')).toBeInTheDocument());
+    expect(screen.queryByRole('link', { name: /substack/i })).toBeNull();
+  });
 });

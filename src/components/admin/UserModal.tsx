@@ -9,6 +9,10 @@ import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import Checkbox from '@mui/material/Checkbox';
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
@@ -29,6 +33,7 @@ const EditSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
   substack_url: z.string().optional(),
+  password: z.string().min(8).optional().or(z.literal('')),
   timezone: z.string().min(1),
   status: z.enum(['pending', 'validated']),
   is_admin: z.boolean(),
@@ -66,6 +71,8 @@ export const UserModal = ({ mode, user, onClose, onSaved }: Props) => {
     defaultValues: {
       name: user?.name ?? '',
       email: user?.email ?? '',
+      substack_url: user?.substack_url ?? '',
+      password: '',
       timezone: user?.timezone ?? defaultTz,
       status: user?.status ?? 'pending',
       is_admin: user?.is_admin ?? false,
@@ -77,6 +84,8 @@ export const UserModal = ({ mode, user, onClose, onSaved }: Props) => {
       editForm.reset({
         name: user.name,
         email: user.email,
+        substack_url: user.substack_url ?? '',
+        password: '',
         timezone: user.timezone,
         status: user.status,
         is_admin: user.is_admin,
@@ -103,10 +112,16 @@ export const UserModal = ({ mode, user, onClose, onSaved }: Props) => {
 
   const onSubmitEdit = async (values: EditValues) => {
     setApiError(null);
+    const { password, ...rest } = values;
+    const payload = {
+      ...rest,
+      is_admin: rest.is_admin ? 1 : 0,
+      ...(password ? { password } : {}),
+    };
     const res = await fetch(`/api/admin/users.php?id=${user!.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...values, is_admin: values.is_admin ? 1 : 0 }),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       setApiError('Failed to update user. Please try again.');
@@ -223,6 +238,44 @@ export const UserModal = ({ mode, user, onClose, onSaved }: Props) => {
               helperText={editForm.formState.errors.email?.message}
               inputProps={{ 'aria-label': 'Email' }}
               InputLabelProps={{ htmlFor: 'modal-email-edit' }}
+            />
+            <TextField
+              {...editForm.register('substack_url')}
+              label="Substack URL"
+              id="modal-substack-edit"
+              type="url"
+              error={!!editForm.formState.errors.substack_url}
+              helperText={editForm.formState.errors.substack_url?.message}
+              inputProps={{ 'aria-label': 'Substack URL' }}
+              InputLabelProps={{ htmlFor: 'modal-substack-edit' }}
+            />
+            <TextField
+              {...editForm.register('password')}
+              label="New password — leave blank to keep current"
+              id="modal-password-edit"
+              type="password"
+              error={!!editForm.formState.errors.password}
+              helperText={editForm.formState.errors.password?.message}
+              inputProps={{ 'aria-label': 'New password' }}
+              InputLabelProps={{ htmlFor: 'modal-password-edit' }}
+            />
+            <Controller
+              name="status"
+              control={editForm.control}
+              render={({ field }) => (
+                <FormControl fullWidth>
+                  <InputLabel id="modal-status-label">Status</InputLabel>
+                  <Select
+                    {...field}
+                    labelId="modal-status-label"
+                    label="Status"
+                    inputProps={{ 'aria-label': 'Status' }}
+                  >
+                    <MenuItem value="pending">Pending</MenuItem>
+                    <MenuItem value="validated">Validated</MenuItem>
+                  </Select>
+                </FormControl>
+              )}
             />
             <Controller
               name="timezone"

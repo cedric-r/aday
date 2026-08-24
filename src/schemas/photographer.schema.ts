@@ -10,7 +10,7 @@ const PhotoSummarySchema = z.object({
 export const PhotographerSummarySchema = z.object({
   username: z.string(),
   name: z.string(),
-  substack_url: z.string(),
+  substack_url: z.string().nullable(),
   photo_count: z.number().int(),
 });
 
@@ -19,7 +19,7 @@ export const PhotographerListSchema = z.array(PhotographerSummarySchema);
 export const PhotographerDetailSchema = z.object({
   username: z.string(),
   name: z.string(),
-  substack_url: z.string(),
+  substack_url: z.string().nullable(),
   photos: z.array(PhotoSummarySchema),
 });
 

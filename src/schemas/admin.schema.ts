@@ -5,6 +5,7 @@ export const AdminUserSchema = z.object({
   username: z.string(),
   name: z.string(),
   email: z.string(),
+  substack_url: z.string().nullable().optional(),
   timezone: z.string(),
   status: z.enum(['pending', 'validated']),
   // API returns 0/1 integers — coerce to boolean

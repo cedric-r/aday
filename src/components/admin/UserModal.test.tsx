@@ -140,6 +140,37 @@ describe('UserModal', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it('shows status select in edit mode pre-populated from user', async () => {
+    const user = { id: 1, username: 'alice', name: 'Alice', email: 'a@a.com', substack_url: null, timezone: 'Europe/London', status: 'pending' as const, is_admin: false, created_at: '2026-01-01' };
+    render(<UserModal mode="edit" user={user} onClose={vi.fn()} onSaved={vi.fn()} />);
+    // Status field should be rendered
+    expect(screen.getByLabelText(/status/i)).toBeInTheDocument();
+  });
+
+  it('shows substack URL field in edit mode', async () => {
+    const user = { id: 1, username: 'alice', name: 'Alice', email: 'a@a.com', substack_url: 'https://alice.substack.com', timezone: 'Europe/London', status: 'validated' as const, is_admin: false, created_at: '2026-01-01' };
+    render(<UserModal mode="edit" user={user} onClose={vi.fn()} onSaved={vi.fn()} />);
+    const substackField = screen.getByLabelText(/substack url/i);
+    expect(substackField).toBeInTheDocument();
+    expect(substackField).toHaveValue('https://alice.substack.com');
+  });
+
+  it('omits password from PUT body when left blank', async () => {
+    const onSaved = vi.fn();
+    const user = { id: 1, username: 'alice', name: 'Alice', email: 'a@a.com', substack_url: null, timezone: 'Europe/London', status: 'validated' as const, is_admin: false, created_at: '2026-01-01' };
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ message: 'Updated.' }), { status: 200 }),
+    );
+
+    render(<UserModal mode="edit" user={user} onClose={vi.fn()} onSaved={onSaved} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    const body = JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string) as Record<string, unknown>;
+    expect(body).not.toHaveProperty('password');
+  });
+
   it('shows error message when PUT fails', async () => {
     mockFetch.mockResolvedValueOnce(
       new Response(JSON.stringify({ error: 'Server error' }), { status: 500 }),

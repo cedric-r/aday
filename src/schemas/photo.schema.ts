@@ -4,7 +4,7 @@ export const PhotoSchema = z.object({
   id: z.number().int(),
   username: z.string(),
   name: z.string(),
-  substack_url: z.string(),
+  substack_url: z.string().nullable(),
   filename: z.string(),
   description: z.string(),
   posted_at: z.string(),

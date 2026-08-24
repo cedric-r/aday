@@ -7,7 +7,7 @@ const mockFetch = vi.fn<typeof fetch>();
 
 const photographers = [
   { username: 'alice', name: 'Alice Example', substack_url: 'https://alice.substack.com', photo_count: 3 },
-  { username: 'bob', name: 'Bob Smith', substack_url: '', photo_count: 1 },
+  { username: 'bob', name: 'Bob Smith', substack_url: null, photo_count: 1 },
   { username: 'carol', name: 'Carol Jones', substack_url: 'https://carol.substack.com', photo_count: 0 },
 ];
 
@@ -76,5 +76,18 @@ describe('IndexPage', () => {
     await waitFor(() =>
       expect(screen.getByText(/no participants yet/i)).toBeInTheDocument(),
     );
+  });
+
+  it('renders without error when substack_url is null', async () => {
+    const withNull = [
+      { username: 'alice', name: 'Alice Example', substack_url: null, photo_count: 2 },
+    ];
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify(withNull), { status: 200 }),
+    );
+    renderPage();
+    await waitFor(() => expect(screen.getByText('Alice Example')).toBeInTheDocument());
+    // No Substack link rendered when null
+    expect(screen.queryByRole('link', { name: /substack/i })).toBeNull();
   });
 });
