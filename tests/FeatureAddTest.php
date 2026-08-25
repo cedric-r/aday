@@ -168,6 +168,74 @@ final class FeatureAddTest extends TestCase
         $this->assertNull($res['json']['photos'][0]['thumb_url']);
     }
 
+    // -----------------------------------------------------------------------
+    // Security fixes from the audit wave
+    // -----------------------------------------------------------------------
+
+    public function test_http_url_validator_rejects_javascript_schemes(): void
+    {
+        $this->assertTrue(Validate::httpUrl('https://alice.substack.com'));
+        $this->assertTrue(Validate::httpUrl('http://example.com'));
+        $this->assertFalse(Validate::httpUrl('javascript:alert(1)'));
+        $this->assertFalse(Validate::httpUrl('data:text/html,<script>'));
+        $this->assertFalse(Validate::httpUrl('vbscript:x'));
+        $this->assertFalse(Validate::httpUrl('file:///etc/passwd'));
+        $this->assertFalse(Validate::httpUrl(''));
+    }
+
+    public function test_register_rejects_javascript_substack_url(): void
+    {
+        $_SESSION = ['captcha_index' => 0]; // answer '7'
+
+        $res = TestHelper::request(dirname(__DIR__) . '/api/register.php', 'POST', [
+            'username'       => 'badurl',
+            'name'           => 'Bad URL',
+            'substack_url'   => 'javascript:alert(1)',
+            'email'          => 'badurl@example.com',
+            'password'       => 'securepassword',
+            'timezone'       => 'UTC',
+            'captcha_answer' => '7',
+        ]);
+
+        $this->assertSame(422, $res['status']);
+        $this->assertStringContainsString('substack_url', $res['body']);
+    }
+
+    public function test_submissions_rejects_string_false_for_highlight(): void
+    {
+        $admin = TestHelper::createUser(['username' => 'adminb', 'email' => 'adminb@example.com', 'is_admin' => 1]);
+        $_SESSION['user_id'] = $admin['id'];
+        $photo = TestHelper::createPhoto(['user_id' => $admin['id'], 'filename' => 'h.jpg']);
+
+        // JSON string "false" must NOT be treated as true (audit MINOR 4).
+        $res = TestHelper::request($this->submissionsFile, 'POST', [
+            'id'        => $photo['id'],
+            'highlight' => 'false',
+        ], [], [], [], 'application/json');
+
+        $this->assertSame(400, $res['status']);
+        $flag = (int) db()->query('SELECT highlight FROM photos WHERE id = ' . (int) $photo['id'])->fetchColumn();
+        $this->assertSame(0, $flag);
+    }
+
+    public function test_csv_export_sanitizes_formula_cells(): void
+    {
+        $admin = TestHelper::createUser(['username' => 'adminex', 'email' => 'adminex@example.com', 'is_admin' => 1]);
+        $_SESSION['user_id'] = $admin['id'];
+        TestHelper::createPhoto([
+            'user_id'     => $admin['id'],
+            'filename'    => 'f.jpg',
+            'description' => '=HYPERLINK("https://evil","x")',
+            'gear'        => '+SUM(A1:A9)',
+        ]);
+
+        $res = TestHelper::request($this->exportFile, 'GET', [], ['format' => 'csv']);
+
+        $this->assertSame(200, $res['status']);
+        $this->assertStringContainsString("'=HYPERLINK", $res['body']);
+        $this->assertStringContainsString("'+SUM", $res['body']);
+    }
+
     public function test_stats_returns_total_and_48_hour_buckets(): void
     {
         $user = TestHelper::createUser(['username' => 'stats', 'email' => 'stats@example.com']);

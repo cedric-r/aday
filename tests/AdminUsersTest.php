@@ -140,19 +140,26 @@ final class AdminUsersTest extends TestCase
             'status'   => 'pending',
         ]);
 
-        $token = hash_hmac('sha256', (string) $user['id'], (string) env('APP_SECRET'));
+        // Mimic Mailer::sendAdminValidation: mint a nonce and a bound token.
+        $nonce   = bin2hex(random_bytes(16));
+        db()->prepare('UPDATE users SET validation_nonce = :nonce WHERE id = :id')
+            ->execute([':nonce' => $nonce, ':id' => $user['id']]);
+
+        $expires = time() + 3600;
+        $token   = Mailer::buildToken((int) $user['id'], 'pending@example.com', $nonce, $expires, (string) env('APP_SECRET'));
 
         $res = TestHelper::request(
             $this->validateFile,
             'GET',
             [],
-            ['id' => $user['id'], 'token' => $token]
+            ['id' => $user['id'], 'expires' => $expires, 'token' => $token]
         );
 
         $this->assertSame(200, $res['status']);
 
-        $updated = db()->query("SELECT status FROM users WHERE id = {$user['id']}")->fetch();
+        $updated = db()->query("SELECT status, validation_nonce FROM users WHERE id = {$user['id']}")->fetch();
         $this->assertSame('validated', $updated['status']);
+        $this->assertNull($updated['validation_nonce']); // single-use: nonce consumed
     }
 
     public function test_invalid_hmac_returns_401(): void
@@ -163,14 +170,66 @@ final class AdminUsersTest extends TestCase
             'status'   => 'pending',
         ]);
 
+        $nonce = bin2hex(random_bytes(16));
+        db()->prepare('UPDATE users SET validation_nonce = :nonce WHERE id = :id')
+            ->execute([':nonce' => $nonce, ':id' => $user['id']]);
+
         $res = TestHelper::request(
             $this->validateFile,
             'GET',
             [],
-            ['id' => $user['id'], 'token' => 'invalidtoken']
+            ['id' => $user['id'], 'expires' => time() + 3600, 'token' => 'invalidtoken']
         );
 
         $this->assertSame(401, $res['status']);
+    }
+
+    public function test_expired_validation_link_returns_401(): void
+    {
+        $user = TestHelper::createUser([
+            'username' => 'pending3',
+            'email'    => 'pending3@example.com',
+            'status'   => 'pending',
+        ]);
+        $nonce = bin2hex(random_bytes(16));
+        db()->prepare('UPDATE users SET validation_nonce = :nonce WHERE id = :id')
+            ->execute([':nonce' => $nonce, ':id' => $user['id']]);
+
+        $expired = time() - 10;
+        $token   = Mailer::buildToken((int) $user['id'], 'pending3@example.com', $nonce, $expired, (string) env('APP_SECRET'));
+
+        $res = TestHelper::request(
+            $this->validateFile,
+            'GET',
+            [],
+            ['id' => $user['id'], 'expires' => $expired, 'token' => $token]
+        );
+
+        $this->assertSame(401, $res['status']);
+        $status = db()->query("SELECT status FROM users WHERE id = {$user['id']}")->fetchColumn();
+        $this->assertSame('pending', $status); // not validated
+    }
+
+    public function test_legacy_id_only_token_is_rejected(): void
+    {
+        // The old scheme (HMAC over id only, no nonce/expiry) must not work.
+        $user = TestHelper::createUser([
+            'username' => 'pending4',
+            'email'    => 'pending4@example.com',
+            'status'   => 'pending',
+        ]);
+        $legacy = hash_hmac('sha256', (string) $user['id'], (string) env('APP_SECRET'));
+
+        $res = TestHelper::request(
+            $this->validateFile,
+            'GET',
+            [],
+            ['id' => $user['id'], 'token' => $legacy]
+        );
+
+        $this->assertSame(400, $res['status']); // missing expires param
+        $status = db()->query("SELECT status FROM users WHERE id = {$user['id']}")->fetchColumn();
+        $this->assertSame('pending', $status);
     }
 
     // -----------------------------------------------------------------------

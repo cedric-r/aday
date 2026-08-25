@@ -19,8 +19,21 @@ RewriteRule .* - [L]
 RewriteRule ^assets/(.*)$ /dist/assets/$1 [L]
 RewriteRule ^documentyourlife\.png$ /dist/documentyourlife.png [L]
 
+# ---- Frame protections (clickjacking): deny everywhere except /embed ----
+# /embed is deliberately frameable (Substack etc.); everything else must not
+# render inside someone else's page. Requires mod_headers (checked at deploy).
+SetEnvIf Request_URI "^/embed(\?.*)?$" allow_embed_framing=1
+Header always set X-Frame-Options "DENY" env=!allow_embed_framing
+Header always set Content-Security-Policy "frame-ancestors 'none'" env=!allow_embed_framing
+Header unset X-Frame-Options env=allow_embed_framing
+Header always set Content-Security-Policy "frame-ancestors *" env=allow_embed_framing
+
 # ---- Per-photo pages: server-render social meta tags alongside the SPA ----
 RewriteRule ^photos/([0-9]+)/?$ photo-meta.php?id=$1 [L,QSA]
+
+# ---- Never serve Vite's source index.html or stray SQLite files ----
+RewriteRule ^index\.html$ /dist/index.html [L]
+RewriteRule ^.*\.sqlite(?:-wal|-shm)?$ - [F,L]
 
 # ---- SPA entry point ----
 DirectoryIndex /dist/index.html

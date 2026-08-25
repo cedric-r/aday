@@ -92,6 +92,7 @@ export const PhotoLightbox = ({ photos, initialIndex, onClose, onNavigate }: Pro
       <IconButton
         onClick={onClose}
         aria-label="Close viewer"
+        autoFocus
         sx={{ position: 'absolute', top: 12, right: 12, zIndex: 2, color: 'white' }}
       >
         ✕

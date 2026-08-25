@@ -47,6 +47,16 @@ final class Thumbnails
         }
 
         $side  = min($width, $height);
+        if ($side <= 0) {
+            imagedestroy($source);
+            return false;
+        }
+        // Hard ceiling: never decode absurd dimensions even when the caller
+        // missed the check (decompression-bomb defense, audit M3).
+        if ($width > 8000 || $height > 8000 || $width * $height > 40_000_000) {
+            imagedestroy($source);
+            return false;
+        }
         $scale = self::THUMB_MAX / $side;
         $tw    = (int) max(1, round($side * $scale));
         $thumb = imagecreatetruecolor($tw, $tw);

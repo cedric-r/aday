@@ -44,6 +44,7 @@ cp .env.example .env
 | `APP_ENV` | Yes | `production` (Secure cookie) or `development` (no Secure flag for local HTTP) |
 | `DB_PATH` | Yes | SQLite file path. Relative paths resolve against the **project root** (e.g. `data/aday.sqlite` → `<project>/data/aday.sqlite`). Absolute paths also work. Default: `data/aday.sqlite`. Directory must be writable. |
 | `SMTP_FROM` | Yes | Sender address for admin notification emails |
+| `APP_SECRET` | **Required** | Random ≥ 32-byte value. Missing/short/placeholder ⇒ validation links **fail closed** (no token minted, endpoint 500s). Do **not** use the `.env.example` placeholder. |
 | `APP_URL` | Yes | Public base URL (used for absolute links in outgoing emails, e.g. the clickable validation link) |
 
 > Registration notifications are sent to the **admin users in the database**

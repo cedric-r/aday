@@ -30,6 +30,13 @@ if ($username === '' || $password === '') {
     respond(400, 'Username and password are required.');
 }
 
+// Cheap brute-force throttle: 5 failed attempts → rate-limit the session.
+$failures = (int) ($_SESSION['login_failures'] ?? 0);
+if ($failures >= 5) {
+    sleep(2);
+    respond(429, 'Too many login attempts. Please try again later.');
+}
+
 // ── Load user ─────────────────────────────────────────────────────────────────
 
 $stmt = db()->prepare(
@@ -40,18 +47,24 @@ $stmt->execute([':username' => $username]);
 $user = $stmt->fetch();
 
 if ($user === false) {
+    $_SESSION['login_failures'] = $failures + 1;
     respond(401, 'Invalid credentials.');
 }
 
 if (!password_verify($password, (string) $user['password_hash'])) {
+    $_SESSION['login_failures'] = $failures + 1;
     respond(401, 'Invalid credentials.');
 }
 
 if ($user['status'] !== 'validated') {
-    respond(403, 'Account pending approval.');
+    // Generic message: don't reveal whether the password was correct
+    // (credential oracle, audit m1).
+    respond(403, 'Invalid credentials or account pending approval.');
 }
 
 // ── Start authenticated session ───────────────────────────────────────────────
+
+unset($_SESSION['login_failures']);
 
 if (env('APP_ENV') !== 'testing') {
     session_regenerate_id(true);

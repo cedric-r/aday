@@ -62,6 +62,12 @@ if ($method === 'POST') {
     if (strlen($password) < 8) {
         $errors['password'] = 'Password must be at least 8 characters.';
     }
+    if (!in_array($timezone, DateTimeZone::listIdentifiers(), true)) {
+        $errors['timezone'] = 'Valid IANA timezone required.';
+    }
+    if ($substackUrl !== '' && !Validate::httpUrl($substackUrl)) {
+        $errors['substack_url'] = 'Substack URL must be a valid http(s) link.';
+    }
 
     if ($errors !== []) {
         respond(422, ['errors' => $errors]);
@@ -112,6 +118,19 @@ if ($method === 'PUT') {
         if (strlen($password) < 8) {
             respond(422, ['errors' => ['password' => 'Password must be at least 8 characters.']]);
         }
+    }
+
+    // Validate timezone + status when present (admin-created users can carry
+    // typos that later crash WindowCheck; status is a closed set).
+    if ($timezone !== '' && !in_array($timezone, DateTimeZone::listIdentifiers(), true)) {
+        respond(422, ['errors' => ['timezone' => 'Valid IANA timezone required.']]);
+    }
+    if ($status !== '' && !in_array($status, ['pending', 'validated', 'disabled'], true)) {
+        respond(422, ['errors' => ['status' => 'Status must be pending, validated or disabled.']]);
+    }
+    // substack_url: only http(s) — blocks javascript:/data: link injection.
+    if ($substackRaw !== null && $substackRaw !== '' && !Validate::httpUrl((string) $substackRaw)) {
+        respond(422, ['errors' => ['substack_url' => 'Substack URL must be a valid http(s) link.']]);
     }
 
     $fields = [];
@@ -168,8 +187,8 @@ if ($method === 'DELETE') {
         respond(400, 'id is required.');
     }
 
-    // Fetch target first (needed by both guards below).
-    $targetStmt = db()->prepare('SELECT is_admin FROM users WHERE id = :id');
+    // Fetch the username (needed to remove their uploads dir too).
+    $targetStmt = db()->prepare('SELECT username, is_admin FROM users WHERE id = :id');
     $targetStmt->execute([':id' => $id]);
     $target = $targetStmt->fetch();
 
@@ -188,6 +207,23 @@ if ($method === 'DELETE') {
     }
 
     db()->prepare('DELETE FROM users WHERE id = :id')->execute([':id' => $id]);
+
+    // Remove the user's upload directory (originals + thumbs) so deleted
+    // participants' photos are not left reachable by URL (audit m9).
+    if ($target !== false) {
+        $dir = dirname(__DIR__, 2) . '/uploads/' . $target['username'];
+        if (is_dir($dir)) {
+            $it = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+                RecursiveIteratorIterator::CHILD_FIRST
+            );
+            foreach ($it as $f) {
+                $f->isDir() ? @rmdir($f->getPathname()) : @unlink($f->getPathname());
+            }
+            @rmdir($dir);
+        }
+    }
+
     echo json_encode(['message' => 'User deleted.']);
     return;
 }

@@ -64,7 +64,7 @@ $stmt = db()->query(
     'SELECT u.username, u.name, u.substack_url,
             COUNT(p.id) AS photo_count
      FROM users u
-     LEFT JOIN photos p ON p.user_id = u.id
+     LEFT JOIN photos p ON p.user_id = u.id AND p.hidden = 0
      WHERE u.status = \'validated\'
      GROUP BY u.id
      ORDER BY u.name COLLATE NOCASE ASC'

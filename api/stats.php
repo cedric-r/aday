@@ -10,8 +10,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     respond(405, 'Method not allowed.');
 }
 
-// Total photo count.
-$total = (int) db()->query('SELECT COUNT(*) FROM photos')->fetchColumn();
+// Total photo count (hidden/unlisted photos never count toward public stats).
+$total = (int) db()->query('SELECT COUNT(*) FROM photos WHERE hidden = 0')->fetchColumn();
 
 // Hourly posting histogram — UTC hour buckets for the last 48 hours, so the
 // "pulse" of the event (across timezones) is visible. Buckets with no photos
@@ -20,7 +20,7 @@ $byHourRaw = [];
 $stmt = db()->query(
     "SELECT strftime('%Y-%m-%d %H:00', posted_at) AS hour, COUNT(*) AS cnt
      FROM photos
-     WHERE posted_at >= datetime('now', '-48 hours')
+     WHERE posted_at >= datetime('now', '-48 hours') AND hidden = 0
      GROUP BY hour"
 );
 if ($stmt !== false) {

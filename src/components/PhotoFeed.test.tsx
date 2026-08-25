@@ -229,4 +229,43 @@ describe('PhotoFeed', () => {
     // 1 initial + 1 poll = 2 total (not 3 — guard prevented second)
     expect(mockFetch).toHaveBeenCalledTimes(2);
   });
+
+  // ── Deep-link (?photo=N) regression tests ─────────────────────────────────
+  // C2 from the audit: cold visit to /?photo=N never opened the lightbox
+  // because the deep-link effect ran once during loading and never re-ran.
+
+  it('opens the lightbox on cold load when ?photo is already in the feed', async () => {
+    mockFetch.mockResolvedValueOnce(
+      feedResponse([makePhoto(1, '2026-08-24 10:00:00'), makePhoto(2, '2026-08-24 09:00:00')]),
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/?photo=1']}>
+        <PhotoFeed />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByText('Description 1')).toBeInTheDocument());
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: /photo viewer/i })).toBeInTheDocument();
+    });
+  });
+
+  it('fetches the single photo when ?photo is not in the loaded feed', async () => {
+    mockFetch
+      .mockResolvedValueOnce(feedResponse([makePhoto(1, '2026-08-24 10:00:00')]))
+      .mockResolvedValueOnce(feedResponse([makePhoto(999, '2026-08-24 08:00:00')]));
+
+    render(
+      <MemoryRouter initialEntries={['/?photo=999']}>
+        <PhotoFeed />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByText('Description 1')).toBeInTheDocument());
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: /photo viewer/i })).toBeInTheDocument();
+    });
+    expect(mockFetch).toHaveBeenCalledWith('/api/photos.php?photo=999');
+  });
 });

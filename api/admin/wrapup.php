@@ -23,6 +23,7 @@ echo json_encode([
         'sent'           => "Wrap-up email sent to {$result['count']} participant(s).",
         'already_sent'   => 'Wrap-up email was already sent for this event.',
         'no_recipients'  => 'No validated participants with an email address.',
+        'failed'         => 'Wrap-up email could not be sent (mail relay error). The flag was reset — try again.',
     },
     'status' => $result['status'],
     'count'  => $result['count'],

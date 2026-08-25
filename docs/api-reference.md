@@ -249,11 +249,14 @@ Delete a user.
 
 ---
 
-### GET /api/admin/validate.php?token=T&id=N
+### GET /api/admin/validate.php?id=N&expires=TS&token=T
 
 Approve a pending user via the HMAC link sent in the registration email.
 
-Token = `hash_hmac('sha256', userId, APP_SECRET)`.
+Token = `hash_hmac('sha256', "id|email|expires|nonce", APP_SECRET)` — bound to
+the user's email, an expiry (72h), and a single-use nonce stored on the user
+(consumed on success). The endpoint fails closed (500) when `APP_SECRET` is
+missing/short/placeholder.
 
 **Response — 302 redirect** to `/admin/?validated=1`  
 (200 JSON in test/API mode)
@@ -456,8 +459,8 @@ Public feed with cursor pagination.
 **Query parameters**
 | Param | Type | Description |
 |---|---|---|
-| `before` | ISO 8601 datetime | Photos posted before this timestamp (newest-first page) |
-| `after` | ISO 8601 datetime | Photos posted after this timestamp (polling — returns newest first) |
+| `before` | cursor | Paginate older: `posted_at|id` composite (legacy plain timestamp still works) |
+| `after` | cursor | Poll newer: `posted_at|id` composite (newest-first response) |
 | `limit` | int | Default 20, max 50 |
 | `photo` | int | Return a single photo by id (lightbox deep-link) |
 | `highlight` | flag | Return only admin-highlighted photos (max 50) |
@@ -484,11 +487,11 @@ Each photo now also includes (nullable/0-1): `highlight`, `gear`, `exif_make`,
       "posted_at": "2026-08-24 09:14:22"
     }
   ],
-  "next_cursor": "2026-08-24 08:30:00"
+  "next_cursor": "2026-08-24 08:30:00|42"
 }
 ```
 
-> `next_cursor` = `posted_at` of oldest photo in response, or `null`.  
+> `next_cursor` = `postedAt|id` of the oldest photo in the response (composite — no same-second drops), or `null`.  
 > Use `?before=<next_cursor>` for the next page.  
 > Use `?after=<latest_seen_posted_at>` for incremental polling. Ignore `next_cursor` in polling mode.
 

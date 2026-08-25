@@ -1,8 +1,11 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { TimezoneSelect } from './TimezoneSelect';
 
 describe('TimezoneSelect', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
   it('renders a select element', () => {
     render(
       <TimezoneSelect
@@ -42,7 +45,13 @@ describe('TimezoneSelect', () => {
   });
 
   it('renders an option for the browser default timezone', () => {
+    // Stub the environment timezone so the test is deterministic everywhere.
+    vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue(
+      { timeZone: 'Europe/Paris' } as ReturnType<typeof Intl.DateTimeFormat.prototype.resolvedOptions>,
+    );
     const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    expect(browserTz).toBe('Europe/Paris');
+
     render(
       <TimezoneSelect
         value={browserTz}

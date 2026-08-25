@@ -18,13 +18,21 @@ declare(strict_types=1);
 
 $uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
 
+// Refuse path traversal / encoded separators (audit M5 — this dev router
+// must never serve anything outside dist/).
+if ($uri === null || str_contains($uri, '..')) {
+    http_response_code(400);
+    exit('Bad request');
+}
+
 if (str_starts_with($uri, '/api/') || in_array($uri, ['/setup.php', '/router.php'], true)) {
     return false; // let PHP built-in server handle
 }
 
 $file = __DIR__ . '/dist' . $uri;
-if ($uri !== '/' && is_file($file)) {
-    $mime = match (strtolower(pathinfo($file, PATHINFO_EXTENSION))) {
+$resolved = realpath($file);
+if ($uri !== '/' && $resolved !== false && str_starts_with($resolved, __DIR__ . '/dist')) {
+    $mime = match (strtolower(pathinfo($resolved, PATHINFO_EXTENSION))) {
         'js'          => 'application/javascript',
         'css'         => 'text/css',
         'png'         => 'image/png',
@@ -35,7 +43,7 @@ if ($uri !== '/' && is_file($file)) {
         default       => 'application/octet-stream',
     };
     header('Content-Type: ' . $mime);
-    readfile($file);
+    readfile($resolved);
     return true;
 }
 

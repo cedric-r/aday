@@ -23,7 +23,7 @@ const AddSchema = z.object({
   username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/),
   name: z.string().min(1),
   email: z.string().email(),
-  substack_url: z.string().optional(),
+  substack_url: z.string().url('Must be a valid http(s) URL').or(z.literal('')).optional(),
   password: z.string().min(8),
   timezone: z.string().min(1),
   is_admin: z.boolean(),
@@ -32,7 +32,7 @@ const AddSchema = z.object({
 const EditSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
-  substack_url: z.string().optional(),
+  substack_url: z.string().url('Must be a valid http(s) URL').or(z.literal('')).optional(),
   password: z.string().min(8).optional().or(z.literal('')),
   timezone: z.string().min(1),
   status: z.enum(['pending', 'validated']),

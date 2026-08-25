@@ -19,6 +19,9 @@ declare(strict_types=1);
 if (session_status() === PHP_SESSION_NONE) {
     $secure = env('APP_ENV', 'production') !== 'development';
 
+    // Server-side idle timeout for sessions (a fresh cookie still dies after 2h).
+    ini_set('session.gc_maxlifetime', '7200');
+
     session_name('aday_session');
 
     session_set_cookie_params([
@@ -28,4 +31,30 @@ if (session_status() === PHP_SESSION_NONE) {
     ]);
 
     unset($secure);
+}
+
+// Origin / Sec-Fetch-Site check on state-changing requests (CSRF defense in
+// depth on top of SameSite=Lax — audit m2). Same-origin browser requests carry
+// Origin or Sec-Fetch-Site; cross-origin ones are rejected before any handler
+// runs. Non-browser clients that omit both headers are unaffected.
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+if (in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH'], true)) {
+    $origin = isset($_SERVER['HTTP_ORIGIN']) ? (string) $_SERVER['HTTP_ORIGIN'] : '';
+    $host   = isset($_SERVER['HTTP_HOST']) ? (string) $_SERVER['HTTP_HOST'] : '';
+    if ($origin !== '' && $host !== '') {
+        $originHost = parse_url($origin, PHP_URL_HOST);
+        if ($originHost !== null && $originHost !== $host) {
+            http_response_code(403);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['message' => 'Cross-origin request rejected.']);
+            exit;
+        }
+    }
+    $fetchSite = isset($_SERVER['HTTP_SEC_FETCH_SITE']) ? (string) $_SERVER['HTTP_SEC_FETCH_SITE'] : '';
+    if ($fetchSite === 'cross-site') {
+        http_response_code(403);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['message' => 'Cross-origin request rejected.']);
+        exit;
+    }
 }

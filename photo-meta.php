@@ -23,6 +23,8 @@ if ($index === false) {
 }
 
 header('Content-Type: text/html; charset=utf-8');
+// Crawlers/embeds must not cache a stale SPA shell or meta tags.
+header('Cache-Control: no-cache, must-revalidate');
 
 $base = rtrim((string) env('APP_URL', 'https://aday.photoni.st'), '/');
 $pageUrl = "{$base}/photos/{$id}";

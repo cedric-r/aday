@@ -68,6 +68,10 @@ if ($timezone === '' || !in_array($timezone, DateTimeZone::listIdentifiers(), tr
     $errors['timezone'] = 'A valid IANA timezone is required.';
 }
 
+if ($substackUrl !== '' && !Validate::httpUrl($substackUrl)) {
+    $errors['substack_url'] = 'Substack URL must be a valid http(s) link.';
+}
+
 // ── Validate captcha ─────────────────────────────────────────────────────────
 
 /** @var array<int, array{q: string, a: string}> $captcha */

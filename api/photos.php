@@ -50,11 +50,20 @@ if ($method === 'POST') {
     }
 
     $description = trim((string) ($_POST['description'] ?? ''));
+    $description = mb_substr($description, 0, 2000);
     $gear        = trim((string) ($_POST['gear'] ?? ''));
     $gear        = $gear === '' ? null : mb_substr($gear, 0, 200);
 
     $uploadsDir = dirname(__DIR__) . "/uploads/{$user['username']}";
     $uploadPath = "{$uploadsDir}/{$filename}";
+
+    // Reject decompression bombs: a small file can declare huge dimensions and
+    // exhaust memory during GD/exif decode. Cap before we decode anything.
+    $dims = @getimagesize($uploadPath);
+    if ($dims !== false && ($dims[0] > 8000 || $dims[1] > 8000 || $dims[0] * $dims[1] > 40_000_000)) {
+        @unlink($uploadPath);
+        respond(422, 'Image dimensions exceed the 8000px / 40MP limit.');
+    }
 
     // Capture camera metadata (digital files only; empty for scans/no-EXIF).
     $exif = Exif::extract($uploadPath);
@@ -116,6 +125,16 @@ if ($method === 'GET') {
         $visible = 'AND p.hidden = 0 ';
         $nextCursor = null;
 
+        // Composite cursor "posted_at|id" so pagination/polling don't drop
+        // photos that share the same posted_at second (burst uploads on event
+        // day). Legacy plain-timestamp cursors still parse (id defaults 0).
+        $before = $before !== null && $before !== '' ? explode('|', $before, 2) : null;
+        $after  = $after  !== null && $after  !== '' ? explode('|', $after, 2)  : null;
+        $beforeTime = $before ? $before[0] : null;
+        $beforeId   = $before && isset($before[1]) ? (int) $before[1] : 0;
+        $afterTime  = $after  ? $after[0]  : null;
+        $afterId    = $after  && isset($after[1])  ? (int) $after[1]  : 0;
+
         if ($photographer !== '') {
             // Filter by a single (validated) photographer's username — used by
             // per-photographer embeds.
@@ -143,39 +162,39 @@ if ($method === 'GET') {
             );
             $stmt->execute();
             $photos = $stmt->fetchAll();
-        } elseif ($after !== null && $after !== '') {
-        // Polling variant: photos NEWER than $after, ascending order, then reverse.
+        } elseif ($after !== null) {
+        // Polling variant: photos NEWER than the cursor, ascending, then reverse.
         $stmt = db()->prepare(
             $baseSelect .
-            'WHERE p.posted_at > :after ' . $visible .
+            'WHERE (p.posted_at > :t OR (p.posted_at = :t AND p.id > :id)) ' . $visible .
             'ORDER BY p.posted_at ASC, p.id ASC
              LIMIT :limit'
         );
-        $stmt->bindValue(':after', $after);
+        $stmt->bindValue(':t', $afterTime);
+        $stmt->bindValue(':id', $afterId, PDO::PARAM_INT);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
         $photos = $stmt->fetchAll();
         // Reverse so newest is first in response.
         $photos = array_reverse($photos);
 
-        $nextCursor = count($photos) === $limit
-            ? $photos[count($photos) - 1]['posted_at']
-            : null;
-    } elseif ($before !== null && $before !== '') {
-        // Before-cursor: photos older than $before.
+        $nextCursor = null;
+    } elseif ($before !== null) {
+        // Before-cursor: photos older than the cursor.
         $stmt = db()->prepare(
             $baseSelect .
-            'WHERE p.posted_at < :before ' . $visible .
+            'WHERE (p.posted_at < :t OR (p.posted_at = :t AND p.id < :id)) ' . $visible .
             'ORDER BY p.posted_at DESC, p.id DESC
              LIMIT :limit'
         );
-        $stmt->bindValue(':before', $before);
+        $stmt->bindValue(':t', $beforeTime);
+        $stmt->bindValue(':id', $beforeId, PDO::PARAM_INT);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
         $photos = $stmt->fetchAll();
 
         $nextCursor = count($photos) === $limit
-            ? $photos[count($photos) - 1]['posted_at']
+            ? $photos[count($photos) - 1]['posted_at'] . '|' . $photos[count($photos) - 1]['id']
             : null;
     } else {
         // Initial load: newest first.
@@ -190,7 +209,7 @@ if ($method === 'GET') {
         $photos = $stmt->fetchAll();
 
         $nextCursor = count($photos) === $limit
-            ? $photos[count($photos) - 1]['posted_at']
+            ? $photos[count($photos) - 1]['posted_at'] . '|' . $photos[count($photos) - 1]['id']
             : null;
     }
 

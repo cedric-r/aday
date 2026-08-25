@@ -48,24 +48,28 @@ if ($format === 'csv' || $format === 'json') {
         respond(500, 'Failed to open output stream.');
     }
     fputcsv($out, $headers);
+    $sanitize = static fn (mixed $v): string =>
+        // CSV formula injection guard: prefix cells starting with a formula
+        // char so Excel/Sheets treat them as text (audit M3).
+        preg_replace('/^[=+\-@\t\r]/', "'\$0", (string) $v);
     foreach ($rows as $row) {
         fputcsv($out, [
             $row['id'],
-            $row['username'],
-            $row['name'],
-            $row['timezone'],
-            $row['substack_url'],
-            $row['filename'],
-            $row['posted_at'],
-            $row['description'],
+            $sanitize($row['username']),
+            $sanitize($row['name']),
+            $sanitize($row['timezone']),
+            $sanitize($row['substack_url']),
+            $sanitize($row['filename']),
+            $sanitize($row['posted_at']),
+            $sanitize($row['description']),
             (int) $row['highlight'],
-            $row['gear'] ?? '',
-            $row['exif_make'] ?? '',
-            $row['exif_model'] ?? '',
-            $row['exif_focal'] ?? '',
-            $row['exif_aperture'] ?? '',
-            $row['exif_shutter'] ?? '',
-            $row['exif_iso'] ?? '',
+            $sanitize($row['gear'] ?? ''),
+            $sanitize($row['exif_make'] ?? ''),
+            $sanitize($row['exif_model'] ?? ''),
+            $sanitize($row['exif_focal'] ?? ''),
+            $sanitize($row['exif_aperture'] ?? ''),
+            $sanitize($row['exif_shutter'] ?? ''),
+            $sanitize($row['exif_iso'] ?? ''),
         ]);
     }
     rewind($out);

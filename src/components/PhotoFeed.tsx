@@ -47,6 +47,7 @@ export const PhotoFeed = ({ eventDate = null, photographer = null }: { eventDate
     : '/api/photos.php?limit=20';
 
   const latestTimestampRef = useRef<string | null>(null);
+  const latestIdRef = useRef<number>(0);
   const isPollingRef = useRef(false);
 
   const fetchPhotos = useCallback(async (url: string): Promise<{ photos: Photo[]; next_cursor: string | null }> => {
@@ -64,6 +65,7 @@ export const PhotoFeed = ({ eventDate = null, photographer = null }: { eventDate
         setNextCursor(data.next_cursor);
         if (data.photos.length > 0) {
           latestTimestampRef.current = data.photos[0].posted_at;
+          latestIdRef.current = data.photos[0].id;
         }
       } catch {
         setError('Failed to load photos. Please refresh.');
@@ -74,12 +76,15 @@ export const PhotoFeed = ({ eventDate = null, photographer = null }: { eventDate
     void load();
   }, [feedQuery, fetchPhotos]);
 
-  // Deep link (?photo=N): open the lightbox once the initial feed is known,
-  // fetching the single photo if it is not in the loaded page.
+  // Deep link (?photo=N): opens the lightbox once the initial feed is known,
+  // fetching the single photo if it is not in the loaded page. Keyed on the
+  // photo param + loading state (not on the mount effect), so a cold visit to
+  // /?photo=N works: the effect runs again once isLoadingInitial flips false.
+  const photoParam = searchParams.get('photo');
   useEffect(() => {
-    const raw = searchParams.get('photo');
-    const target = raw ? Number(raw) : 0;
-    if (!target || isLoadingInitial || lightbox) return;
+    if (isLoadingInitial || lightbox) return;
+    const target = photoParam ? Number(photoParam) : 0;
+    if (!target) return;
 
     const idx = photos.findIndex((p) => p.id === target);
     if (idx >= 0) {
@@ -96,8 +101,14 @@ export const PhotoFeed = ({ eventDate = null, photographer = null }: { eventDate
         }
       })();
     }
+    // NOTE: `lightbox` is intentionally NOT a dependency. The router's
+    // searchParams update lags one tick behind local state on close; keying
+    // on `lightbox` would make the effect re-run in that lag tick with a
+    // stale photoParam and immediately re-open the lightbox (audit C2
+    // regression). Keying on photoParam/loading/photos is sufficient: the
+    // effect only needs to run at cold load (loading flip) and on URL change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [photoParam, isLoadingInitial, photos, fetchPhotos]);
 
   const handleOpen = (photo: Photo) => {
     const idx = photos.findIndex((p) => p.id === photo.id);
@@ -134,16 +145,18 @@ export const PhotoFeed = ({ eventDate = null, photographer = null }: { eventDate
       isPollingRef.current = true;
       try {
         const since = latestTimestampRef.current;
+        const sinceId = latestIdRef.current;
         const pollQuery = photographer
           ? `/api/photos.php?photographer=${encodeURIComponent(photographer)}`
           : '/api/photos.php';
         const url = since
-          ? `${pollQuery}&after=${encodeURIComponent(since)}&limit=50`
+          ? `${pollQuery}&after=${encodeURIComponent(`${since}|${sinceId}`)}&limit=50`
           : `${pollQuery}?limit=20`;
         const data = await fetchPhotos(url);
         if (data.photos.length > 0) {
           setPhotos((prev) => [...data.photos, ...prev]);
           latestTimestampRef.current = data.photos[0].posted_at;
+          latestIdRef.current = data.photos[0].id;
         }
       } finally {
         isPollingRef.current = false;
@@ -152,7 +165,7 @@ export const PhotoFeed = ({ eventDate = null, photographer = null }: { eventDate
 
     const timer = setInterval(() => { void poll(); }, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [fetchPhotos]);
+  }, [fetchPhotos, photographer]);
 
   const handleLoadMore = async () => {
     if (!nextCursor) return;
@@ -236,13 +249,23 @@ export const PhotoFeed = ({ eventDate = null, photographer = null }: { eventDate
           {photos.map((photo) => (
             <Box
               key={photo.id}
+              role="button"
+              tabIndex={0}
+              aria-label={photo.description || `${photo.name}'s photo`}
               onClick={() => handleOpen(photo)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleOpen(photo);
+                }
+              }}
               sx={{
                 aspectRatio: '1',
                 overflow: 'hidden',
                 borderRadius: 1,
                 cursor: 'zoom-in',
                 bgcolor: 'action.hover',
+                '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main' },
               }}
               title={photo.description || photo.name}
             >

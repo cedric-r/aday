@@ -50,12 +50,20 @@ if ($method === 'POST') {
     }
 
     $id        = (int) ($data['id'] ?? 0);
-    $highlight = isset($data['highlight']) ? (int) (bool) $data['highlight'] : -1;
-    $hidden    = isset($data['hidden'])    ? (int) (bool) $data['hidden']    : -1;
+    $bool      = static function (mixed $v): ?bool {
+        if ($v === true || $v === 1 || $v === '1') return true;
+        if ($v === false || $v === 0 || $v === '0') return false;
+        return null; // anything else (e.g. the string "false") is invalid
+    };
+    $highlightRaw = array_key_exists('highlight', $data) ? $bool($data['highlight']) : null;
+    $hiddenRaw    = array_key_exists('hidden', $data)    ? $bool($data['hidden'])    : null;
 
-    if ($id <= 0 || ($highlight < 0 && $hidden < 0)) {
-        respond(400, 'id and highlight/hidden are required.');
+    if ($id <= 0 || ($highlightRaw === null && $hiddenRaw === null)) {
+        respond(400, 'id and highlight/hidden are required (booleans only).');
     }
+
+    $highlight = $highlightRaw === null ? -1 : (int) $highlightRaw;
+    $hidden    = $hiddenRaw    === null ? -1 : (int) $hiddenRaw;
 
     $sets  = [];
     $bind  = [':id' => $id];
@@ -108,6 +116,11 @@ if ($method === 'DELETE') {
     $filePath = dirname(__DIR__, 2) . "/uploads/{$photo['username']}/{$photo['filename']}";
     if (file_exists($filePath)) {
         @unlink($filePath);
+    }
+    // Also remove the thumbnail (best-effort; audit MINOR 5).
+    $thumbPath = dirname(__DIR__, 2) . "/uploads/{$photo['username']}/thumbs/{$photo['filename']}";
+    if (file_exists($thumbPath)) {
+        @unlink($thumbPath);
     }
 
     db()->prepare('DELETE FROM photos WHERE id = :id')->execute([':id' => $id]);

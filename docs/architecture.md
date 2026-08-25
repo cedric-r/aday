@@ -45,9 +45,9 @@ api/
   status.php             GET  — event window status
   admin/
     users.php            GET/POST/PUT/DELETE — user management
-    validate.php         GET  — approve user via HMAC email link
+    validate.php         GET  — approve user via HMAC link (id|email|expiry|nonce, single-use, fail-closed)
     settings.php         GET/POST — event date + late-submissions toggle
-    submissions.php      GET/POST/DELETE — submissions + highlight/hidden toggles
+    submissions.php      GET/POST/DELETE — submissions + highlight/hidden toggles (strict booleans)
     wrapup.php           POST — send the post-event wrap-up email once
     export.php           GET  — ZIP (photos) or CSV/JSON metadata export
 
@@ -56,8 +56,9 @@ lib/
   Mailer.php             PHPMailer wrapper (localhost:25, no auth)
   FileUpload.php         MIME validation + secure file save
   Exif.php               EXIF extraction (make, model, focal, aperture, shutter, ISO)
-  Thumbnails.php         GD square thumbnail generator (best-effort, 320px)
+  Thumbnails.php         GD square thumbnail generator (best-effort, 320px, dims capped)
   WrapUp.php             One-shot post-event participant email (guarded by settings row)
+  Validate.php           Shared http/https URL validator (substack_url)
   WindowCheck.php        Timezone-aware posting-window check (event-date-only, or open-ended for late submitters)
   Exporter.php           ZipArchive builder — per-photographer subfolders
   Response.php           json() / error() / created() helpers
@@ -75,6 +76,7 @@ migrations/
   003_create_photos.php  photos table + indexes
   004_add_photo_fields.php  highlight + gear + EXIF columns
   005_add_hidden.php     hidden (unlist) flag
+  006_add_validation_nonce.php  single-use nonce for admin validation links
   run.php                CLI runner — executes all migrations in order
 
 scripts/

@@ -26,4 +26,8 @@ echo match ($result['status']) {
     'sent'          => "Wrap-up email sent to {$result['count']} participant(s).\n",
     'already_sent'  => "Wrap-up email already sent.\n",
     'no_recipients' => "No validated participants found — nothing sent.\n",
+    'failed'        => "Wrap-up email FAILED to send (relay error). The flag was reset — will retry next run.\n",
 };
+
+// Alert cron watchers on failure (non-zero exit) instead of failing silently.
+exit($result['status'] === 'failed' ? 1 : 0);

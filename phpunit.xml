@@ -24,7 +24,7 @@
     <php>
         <env name="APP_ENV" value="testing"/>
         <env name="DB_PATH" value=":memory:"/>
-        <env name="APP_SECRET" value="test-secret-key-for-phpunit"/>
+        <env name="APP_SECRET" value="test-secret-key-for-phpunit-0123456789abcdef"/>
         <env name="SMTP_FROM" value="test@example.com"/>
         <env name="ADMIN_EMAIL" value="admin@example.com"/>
     </php>
