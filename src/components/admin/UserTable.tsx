@@ -8,6 +8,7 @@ import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
+import Link from '@mui/material/Link';
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
 import { AdminUserListSchema } from '@/schemas/admin.schema';
@@ -78,6 +79,7 @@ export const UserTable = ({ onEdit }: Props) => {
           <TableCell>Username</TableCell>
           <TableCell>Name</TableCell>
           <TableCell>Email</TableCell>
+          <TableCell>Substack URL</TableCell>
           <TableCell>Timezone</TableCell>
           <TableCell>Status</TableCell>
           <TableCell>Admin</TableCell>
@@ -92,6 +94,22 @@ export const UserTable = ({ onEdit }: Props) => {
               <TableCell>{user.username}</TableCell>
               <TableCell>{user.name}</TableCell>
               <TableCell>{user.email}</TableCell>
+              <TableCell>
+                {user.substack_url ? (
+                  <Link
+                    href={user.substack_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={user.substack_url}
+                    underline="hover"
+                    sx={{ fontSize: 'inherit' }}
+                  >
+                    {user.substack_url.replace(/^https?:\/\//, '')}
+                  </Link>
+                ) : (
+                  '—'
+                )}
+              </TableCell>
               <TableCell>{user.timezone}</TableCell>
               <TableCell>
                 <Chip

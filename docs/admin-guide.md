@@ -33,10 +33,14 @@ The **Users** tab shows all registered users in a table:
 | Username | Login handle |
 | Name | Display name shown on the site |
 | Email | Contact email |
+| Substack URL | The user's public Substack page (clickable; `—` when not set) |
 | Timezone | User's IANA timezone (affects posting window) |
-| Status | `pending` (awaiting approval) or `validated` |
+| Status | `pending` (awaiting approval), `validated`, or `disabled` |
 | Is Admin | Whether the user has admin privileges |
 | Actions | Edit · Delete · Approve |
+
+> The Substack URL is only editable through **Add User** / **Edit User** (below),
+> and is also shown publicly on the user's photographer profile page.
 
 ### Approving a Pending User
 
