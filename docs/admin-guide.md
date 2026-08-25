@@ -76,9 +76,13 @@ Restrictions:
 Click the **Event Date** tab.
 
 - Use the date picker to select the event date.
-- Click **Save**. The date is stored immediately and affects:
+- **Keep submissions open after the event date** — a switch (default **off**).
+  When enabled, the posting window stays open from the event date onward
+  (for late submitters, e.g. film photographers). When off, photos can only be
+  submitted on the event date itself (in each user's local timezone).
+- Click **Save**. Both the date and the toggle are stored immediately and affect:
   - **Registration** — disabled on this date.
-  - **Posting window** — photos can only be submitted on this date (in each user's local timezone).
+  - **Posting window** — photos can only be submitted on this date (unless late submissions are enabled).
   - A warning appears if the date is in the past.
 
 ---

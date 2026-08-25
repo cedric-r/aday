@@ -270,9 +270,12 @@ Token = `hash_hmac('sha256', userId, APP_SECRET)`.
 
 **Response — 200 OK**
 ```json
-{ "event_date": "2026-08-24" }
+{
+  "event_date": "2026-08-24",
+  "allow_late_submissions": false
+}
 ```
-> `event_date` is `null` if not configured.
+> `event_date` is `null` if not configured. `allow_late_submissions` defaults to `false`.
 
 ---
 
@@ -280,12 +283,20 @@ Token = `hash_hmac('sha256', userId, APP_SECRET)`.
 
 **Request body**
 ```json
-{ "event_date": "2026-08-24" }
+{
+  "event_date": "2026-08-24",
+  "allow_late_submissions": true
+}
 ```
+> `allow_late_submissions` is optional — when omitted it is stored as `false`.
 
 **Response — 200 OK**
 ```json
-{ "message": "Event date saved.", "event_date": "2026-08-24" }
+{
+  "message": "Event date saved.",
+  "event_date": "2026-08-24",
+  "allow_late_submissions": true
+}
 ```
 
 **Errors**
@@ -394,7 +405,7 @@ Image served at: `/uploads/{username}/{filename}`
 |---|---|
 | 401 | Not authenticated |
 | 403 | Account not validated |
-| 403 | Posting window closed (past 23:59:59 local time or wrong date) |
+| 403 | Posting window closed — not the event date (or after it, when late submissions are disabled) |
 | 422 | Wrong MIME type or file exceeds 15 MB |
 | 503 | Event date not configured |
 
@@ -454,6 +465,7 @@ Public. Returns event date and posting window status.
 {
   "window_open": true,
   "event_date": "2026-08-24",
+  "allow_late_submissions": false,
   "message": "Posting window is open"
 }
 ```
@@ -463,6 +475,7 @@ Public. Returns event date and posting window status.
 {
   "window_open": null,
   "event_date": "2026-08-24",
+  "allow_late_submissions": false,
   "message": "Posting window status unknown (not authenticated)."
 }
 ```
@@ -472,6 +485,7 @@ Public. Returns event date and posting window status.
 {
   "window_open": false,
   "event_date": null,
+  "allow_late_submissions": false,
   "message": "Event not yet scheduled"
 }
 ```

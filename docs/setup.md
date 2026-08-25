@@ -42,7 +42,7 @@ cp .env.example .env
 |---|---|---|
 | `APP_SECRET` | **Yes** | Long random string used for HMAC validation tokens. Generate: `openssl rand -hex 32` |
 | `APP_ENV` | Yes | `production` (Secure cookie) or `development` (no Secure flag for local HTTP) |
-| `DB_PATH` | Yes | Relative path to SQLite file. Default: `data/aday.sqlite`. Directory must be writable. |
+| `DB_PATH` | Yes | SQLite file path. Relative paths resolve against the **project root** (e.g. `data/aday.sqlite` → `<project>/data/aday.sqlite`). Absolute paths also work. Default: `data/aday.sqlite`. Directory must be writable. |
 | `SMTP_FROM` | Yes | Sender address for admin notification emails |
 | `ADMIN_EMAIL` | Yes | Destination for registration validation emails |
 
@@ -54,6 +54,9 @@ cp .env.example .env
 upload_max_filesize = 16M
 post_max_size       = 17M
 ```
+
+> Under Apache these can also be set per-directory in `.htaccess` (as done by
+> the repo's `.htaccess`), so no global `php.ini` edit is needed on the server.
 
 ---
 
@@ -132,9 +135,11 @@ vendor/bin/phpstan analyse
 
 ### Overview
 
-The deployment target for this project is `C:\Users\cedric.raguenaud\Downloads\adaydemo\`.
+The production target for this project is **https://aday.photoni.st** — Apache
+on vps4 (`192.168.233.9`), site root `/var/www/photoni.st/aday` (a
+`webdeploy`-managed directory).
 
-Files to copy:
+Files on the server (this is also the deploy payload):
 
 ```
 api/              PHP API endpoints
@@ -143,154 +148,153 @@ config/           PHP config files
 migrations/       Migration scripts
 scripts/          CLI scripts
 setup.php         First-run admin setup
-router.php        PHP built-in server entry point
-dist/             Built React SPA (from npm run build)
-uploads/          Photo storage (create if absent; must be writable)
-data/             SQLite database (create if absent; must be writable)
-.env              Environment config (NOT .env.example)
+dist/             Built React SPA (from npm run build; not in git — built locally)
+.htaccess         Apache routing/security/upload limits (SPA fallback)
+.env              Environment config (NOT .env.example; created on the server)
 composer.json
 composer.lock
-vendor/           PHP dependencies (or run composer install on target)
+vendor/           PHP dependencies (composer install on the server)
+data/             SQLite database (create if absent; must be writable)
+uploads/          Photo storage (create if absent; must be writable)
+logs/             Runtime logs (create if absent; must be writable)
 ```
 
-### Step-by-Step
+Development-only files (`src/`, `tests/`, `docs/`, `public/`, `node_modules/`,
+`package*.json`, `tsconfig*`, etc.) are **not** deployed.
 
-**1. Build the React app**
+### Step-by-Step (deployment host)
+
+**1. Build the React app** (requires Node; the vps4 server has no Node):
 
 ```bash
+npm ci
 npm run build
 ```
 
-**2. Copy project files to deployment target**
+**2. Stage the payload** (from the git tree + the fresh build):
 
 ```bash
-# Windows (robocopy)
-robocopy . C:\Users\cedric.raguenaud\Downloads\adaydemo ^
-  /E /XD .git node_modules .specifications coverage src ^
-  /XF .env.example *.md tsconfig*.json vite.config.ts eslint.config.js ^
-       package*.json phpstan.neon phpunit.xml
-
-# Or manually copy the required directories listed above
+rm -rf /tmp/aday-deploy && mkdir -p /tmp/aday-deploy
+git archive HEAD | tar -x -C /tmp/aday-deploy
+rsync -a --quiet dist/ /tmp/aday-deploy/dist/
+# remove dev-only files (src, tests, docs, public, node_modules, package*, ...)
+# see docs/development.md or the deploy notes for the exact trim list
 ```
 
-**3. Configure `.env` on the target**
+**3. Ship and deploy via `webdeploy`** (no root needed — the `webdeploy` group
+mechanism on vps4, see skill `webdeploy`):
 
 ```bash
-cd C:\Users\cedric.raguenaud\Downloads\adaydemo
-copy .env.example .env
-# Edit .env — set APP_SECRET, SMTP_FROM, ADMIN_EMAIL, APP_ENV=production
+tar -C /tmp/aday-deploy -czf /tmp/aday-deploy.tgz .
+scp /tmp/aday-deploy.tgz cedric@192.168.233.9:/tmp/webdeploy.tgz
+ssh cedric@192.168.233.9 "rm -rf /tmp/webdeploy && mkdir -p /tmp/webdeploy && \
+    tar -C /tmp/webdeploy -xzf /tmp/webdeploy.tgz && \
+    ~/bin/webdeploy.sh aday /tmp/webdeploy --reload"
 ```
 
-**4. Install PHP dependencies on target** (if `vendor/` not copied)
+`webdeploy.sh` installs files into `/var/www/photoni.st/aday` as the `cedric`
+user (setgid `webdeploy`), then gracefully reloads Apache. It installs new
+files but does **not** prune removed ones — if stale build assets accumulate
+under `dist/`, sync the exact set with `rsync --delete` over the same
+mechanism.
+
+**4. Configure `.env` on the server** (first deploy only):
 
 ```bash
-composer install --no-dev --optimize-autoloader
+cd /var/www/photoni.st/aday
+cat > .env <<EOF
+APP_SECRET=<openssl rand -hex 32>
+APP_ENV=production
+DB_PATH=/var/www/photoni.st/aday/data/aday.sqlite
+SMTP_FROM=noreply@aday.photoni.st
+ADMIN_EMAIL=<event-owner-email>
+EOF
+chmod 640 .env
 ```
 
-**5. Create writable directories**
+> Use an **absolute** `DB_PATH` on the server. Relative paths are resolved
+> against the project root by `config/db.php`, which is safe under mod_php —
+> but an absolute path removes any ambiguity.
+
+**5. Install PHP dependencies on the server** (first deploy only):
 
 ```bash
-mkdir data
-mkdir uploads
-mkdir logs
+cd /var/www/photoni.st/aday
+composer install --no-dev --optimize-autoloader --no-interaction
 ```
 
-**6. Run migrations**
+**6. Create writable directories + run migrations** (first deploy only):
 
 ```bash
+mkdir -p data uploads logs
+chmod 2775 data uploads logs
 php migrations/run.php
+chmod 664 data/aday.sqlite   # group writable so www-data can write (WAL)
 ```
 
-**7. Run first-admin setup**
+**7. Create the first admin** (first deploy only):
 
 ```bash
-php -S localhost:8765 router.php
-# Open http://localhost:8765/setup.php
+curl -sk -X POST -d 'username=<admin>' --data-urlencode 'password=<strong-password>' \
+     https://aday.photoni.st/setup.php
 ```
 
-**8. Start the server**
-
+The page locks permanently after the first admin. To reset:
 ```bash
-php -S localhost:8765 router.php
+php scripts/reset_admin.php   # CLI only
 ```
 
 ---
 
-### `router.php` — PHP Built-In Server Entry Point
+### Production Web Server (Apache)
 
-`router.php` is the entry point for `php -S`. It:
+Production uses Apache **mod_php** with the repo-root `.htaccess` — no vhost
+edits needed for the app itself. The vhost (`aday.photoni.st`) sets
+`DocumentRoot /var/www/photoni.st/aday` and serves the Let's Encrypt cert.
 
-1. If the URL starts with `/api/` or matches a known PHP file (`/setup.php`, etc.) → routes to the PHP file.
-2. If the URL matches a file in `dist/` (JS, CSS, images) → serves it directly.
-3. Otherwise → serves `dist/index.html` (SPA fallback for React Router client-side routing).
+The `.htaccess` in the repo root handles everything:
 
-```php
-<?php
-// router.php — simplified reference
-$uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+1. **Upload limits** — `php_value upload_max_filesize 16M` + `post_max_size 17M`
+   (defaults in `php.ini` are 2M/8M).
+2. **Security** — denies `.env`, `composer.*`, `data/`, `logs/`, `vendor/`,
+   `src/`, `tests/`, `api/data/`, etc.
+3. **API + setup.php** — reaches mod_php directly (`RewriteRule .* - [L]`).
+4. **Static aliases** — `/assets/*` → `/dist/assets/*`, `/documentyourlife.png`
+   → `/dist/documentyourlife.png`.
+5. **SPA fallback** — any other path not matching a real file →
+   `/dist/index.html` (with `DirectoryIndex /dist/index.html`).
 
-if (str_starts_with($uri, '/api/') || in_array($uri, ['/setup.php', '/router.php'])) {
-    return false; // let PHP built-in server handle
-}
+nginx equivalent (for reference) if the site ever moves:
 
-if ($uri !== '/' && file_exists(__DIR__ . '/dist' . $uri)) {
-    return false; // serve static asset
-}
-
-include __DIR__ . '/dist/index.html';
-```
-
----
-
-### Production Web Server (nginx / Apache)
-
-For production deployments replacing the PHP built-in server, configure your web server to:
-
-1. **Route `/api/*` requests to PHP** via FastCGI / php-fpm.
-2. **Serve `/uploads/*` as static files** from the `uploads/` directory.
-3. **Serve `/dist/assets/*` as static files** (long cache headers recommended).
-4. **SPA fallback**: any other path not matching a real file → serve `dist/index.html`.
-
-**nginx example**:
 ```nginx
 server {
     listen 443 ssl;
-    root /var/www/adaydemo;
+    root /var/www/aday;
 
-    # Static assets with cache
-    location /dist/assets/ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    # Uploaded photos
-    location /uploads/ {
-        try_files $uri =404;
-    }
-
-    # PHP API
+    location /dist/assets/ { expires 1y; add_header Cache-Control "public, immutable"; }
+    location /uploads/     { try_files $uri =404; }
     location ~ \.php$ {
         fastcgi_pass unix:/run/php/php8.3-fpm.sock;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         include fastcgi_params;
     }
-
-    # SPA fallback
-    location / {
-        try_files $uri /dist/index.html;
-    }
+    location / { try_files $uri /dist/index.html; }
 }
 ```
 
-**Apache (`.htaccess`)**:
-```apache
-RewriteEngine On
+---
 
-# Skip real files and API
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_URI} !^/api/
-RewriteCond %{REQUEST_URI} !^/uploads/
+### `router.php` — PHP Built-In Server Entry Point (dev only)
 
-# SPA fallback
-RewriteRule ^ /dist/index.html [L]
+`router.php` is the entry point for local development with `php -S`:
+
+1. If the URL starts with `/api/` or matches a known PHP file (`/setup.php`,
+   `/router.php`) → routes to the PHP file.
+2. If the URL matches a file in `dist/` (JS, CSS, images) → serves it directly.
+3. Otherwise → serves `dist/index.html` (SPA fallback for React Router).
+
+```bash
+php -S localhost:8765 router.php
 ```
+
+> Production does **not** use `router.php` — Apache + `.htaccess` replace it.

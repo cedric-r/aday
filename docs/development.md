@@ -41,8 +41,9 @@ aday/
 │   ├── 001_create_users.php
 │   ├── 003_create_photos.php
 │   └── run.php
-├── public/                 Static assets copied by Vite (logo, favicon)
-│   └── assets/logo.png
+├── public/                 Static assets copied by Vite
+│   ├── documentyourlife.png  Site logo (header + empty state)
+│   └── assets/logo.png       Small logo asset
 ├── scripts/                CLI utility scripts
 │   └── reset_admin.php
 ├── src/                    React + TypeScript source
@@ -60,13 +61,14 @@ aday/
 ├── vendor/                 Composer dependencies (gitignored)
 ├── .env.example
 ├── .env                    (gitignored)
+├── .htaccess               Apache SPA routing, security, upload limits (prod)
 ├── composer.json
 ├── eslint.config.js
 ├── index.html              Vite HTML template
 ├── package.json
 ├── phpstan.neon
 ├── phpunit.xml
-├── router.php              PHP built-in server entry point
+├── router.php              PHP built-in server router (dev only)
 ├── setup.php               One-time admin bootstrap
 ├── tsconfig.json
 └── vite.config.ts

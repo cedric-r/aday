@@ -1,6 +1,6 @@
 {
     "name": "aday/photo-publishing",
-    "description": "A Day In The Life — Vanilla PHP + SQLite photo publishing system",
+    "description": "Document Your Life — Vanilla PHP + SQLite photo publishing system",
     "type": "project",
     "require": {
         "php": "^8.3",

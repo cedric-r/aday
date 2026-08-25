@@ -2,7 +2,7 @@
 
 ## Registration
 
-1. Visit **http://localhost:8765/register** (or the deployed URL).
+1. Visit **https://aday.photoni.st/register** (or `http://localhost:8765/register` in local dev).
 2. Fill in the form:
    - **Username** — 3–30 characters, letters, numbers, and underscores only.
    - **Display name** — your name as shown on the site.
@@ -40,6 +40,10 @@ You will not receive a confirmation email yourself — contact the event organis
 
 You can post photos during the event day in **your local timezone** — from 00:00 to 23:59:59.
 
+> If the organiser has enabled **late submissions** (for film photographers, etc.),
+> the window stays open after the event date as well — you can post any day from
+> the event date onward.
+
 1. Click **Post** in the menu (visible to logged-in, validated users).
 2. The posting form shows a banner indicating whether your window is open, with a countdown to midnight in your timezone.
 3. Choose a photo file — accepted formats: **JPEG, PNG, WEBP**, max **15 MB**.
@@ -48,7 +52,7 @@ You can post photos during the event day in **your local timezone** — from 00:
 6. On success, a confirmation message appears with a link to the home page where your photo will be visible within 1 minute.
 
 **If submission is rejected:**
-- "Posting window closed" — it is past 23:59 in your local timezone, or it is not the event date.
+- "Posting window closed" — it is past the event date (and late submissions are off), or the event date has not arrived yet.
 - "Invalid file" — the file is too large or not an accepted image format.
 
 ---
@@ -64,6 +68,10 @@ The **home page** (`/`) shows all photos from all photographers in reverse chron
   - Photographer's name (links to their profile) and Substack link
   - Description
   - Timestamp in your local time
+
+**Before the event** — if no photos have been posted yet and the event date is in
+the future, the home page shows "No photos yet. Check back soon!", the event
+date, and the site logo.
 
 ---
 

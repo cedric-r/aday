@@ -6,7 +6,8 @@
 ┌─────────────────────────────────────────────────────────────┐
 │                          Browser                            │
 │  React 18 SPA (MUI, Zod, RTK Query, React Router v7)       │
-│  served from  dist/index.html  via router.php               │
+│  built to dist/ — served via Apache .htaccess (prod)      │
+│  or router.php (dev)                                       │
 └────────────────────┬───────────────────────────────────────┘
                      │ fetch / FormData (HTTPS + session cookie)
 ┌────────────────────▼───────────────────────────────────────┐
@@ -44,7 +45,7 @@ api/
   admin/
     users.php            GET/POST/PUT/DELETE — user management
     validate.php         GET  — approve user via HMAC email link
-    settings.php         GET/POST — event date
+    settings.php         GET/POST — event date + late-submissions toggle
     submissions.php      GET/DELETE — all submissions
     export.php           GET  — stream ZIP archive
 
@@ -52,14 +53,14 @@ lib/
   Auth.php               requireAdmin() / requireValidated() / currentUser()
   Mailer.php             PHPMailer wrapper (localhost:25, no auth)
   FileUpload.php         MIME validation + secure file save
-  WindowCheck.php        Timezone-aware posting window check
+  WindowCheck.php        Timezone-aware posting-window check (event-date-only, or open-ended for late submitters)
   Exporter.php           ZipArchive builder — per-photographer subfolders
   Response.php           json() / error() / created() helpers
   ResponseException.php  Exception carrying HTTP status + message
   UploadException.php    Thrown by FileUpload on validation failure
 
 config/
-  db.php        PDO singleton — opens data/aday.sqlite, WAL mode
+  db.php        PDO singleton — SQLite, WAL mode; relative DB_PATH resolved against project root (Apache-safe)
   env.php       Loads .env via parse_ini_file; exposes env() helper
   session.php   Sets cookie params (Secure, HttpOnly, SameSite=Lax)
   captcha.php   Returns array of 50 ['q','a'] question pairs
@@ -87,7 +88,7 @@ src/
   theme.ts               MUI createTheme — GitHub-inspired colour palette
 
   pages/
-    HomePage.tsx          / — live photo feed
+    HomePage.tsx          / — live photo feed; shows event date in empty state (before the event)
     IndexPage.tsx         /index — A–Z photographer list
     PhotographerPage.tsx  /photographers/:username — individual profile
     RegisterPage.tsx      /register — registration form + captcha
@@ -107,7 +108,7 @@ src/
     admin/
       UserTable.tsx       User list with status badges + actions
       UserModal.tsx       Add/Edit user modal
-      EventDatePanel.tsx  Event date picker
+      EventDatePanel.tsx  Event date picker + late-submissions toggle
       SubmissionsPanel.tsx  Submission monitor + Export All button
 
   context/
@@ -132,9 +133,8 @@ src/
 ## Request Flow
 
 ```
-1. Browser loads http://localhost:8765/
-   → router.php detects no /api/ prefix
-   → serves dist/index.html (React SPA shell)
+1. Browser loads https://aday.photoni.st/ (or http://localhost:8765/ in dev)
+   → Apache .htaccess (dev: router.php) serves dist/index.html — the React SPA shell
 
 2. React mounts → AuthContext fetches GET /api/me.php
    → sets user state (null if not logged in)
@@ -144,7 +144,7 @@ src/
    → if null: redirect to /login
 
 4. User POSTs a photo to /api/photos.php
-   → PHP: session check → window check → file validation → DB insert → 201
+   → PHP: session check → window check (event date ± late submissions) → file validation → DB insert → 201
    → React: shows success flash
 
 5. Home page polls GET /api/photos.php?after=<timestamp> every 60 s
@@ -218,7 +218,7 @@ CREATE TABLE users (
 CREATE TABLE settings (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
-    -- rows: event_date, setup_complete
+    -- rows: event_date, setup_complete, allow_late_submissions
 );
 
 CREATE TABLE photos (
