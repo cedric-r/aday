@@ -60,4 +60,39 @@ final class WindowCheckTest extends TestCase
         // America/New_York is UTC-4, so local time is 2026-08-23 20:30 → closed for 2026-08-24.
         $this->assertFalse(WindowCheck::isPostingOpen('America/New_York', '2026-08-24', $now));
     }
+
+    // -------------------------------------------------------------------------
+    // Late submissions (film photographers) — allow_late flag
+    // -------------------------------------------------------------------------
+
+    public function test_late_enabled_open_on_event_date(): void
+    {
+        $now = $this->makeNow('2026-08-24 10:00:00', 'UTC');
+        $this->assertTrue(WindowCheck::isPostingOpen('UTC', '2026-08-24', $now, allowLate: true));
+    }
+
+    public function test_late_enabled_open_day_after_event(): void
+    {
+        $now = $this->makeNow('2026-08-25 12:00:00', 'UTC');
+        $this->assertTrue(WindowCheck::isPostingOpen('UTC', '2026-08-24', $now, allowLate: true));
+    }
+
+    public function test_late_enabled_open_many_days_after_event(): void
+    {
+        $now = $this->makeNow('2026-09-01 08:00:00', 'UTC');
+        $this->assertTrue(WindowCheck::isPostingOpen('UTC', '2026-08-24', $now, allowLate: true));
+    }
+
+    public function test_late_enabled_closed_before_event(): void
+    {
+        $now = $this->makeNow('2026-08-23 12:00:00', 'UTC');
+        $this->assertFalse(WindowCheck::isPostingOpen('UTC', '2026-08-24', $now, allowLate: true));
+    }
+
+    public function test_late_disabled_closed_after_event(): void
+    {
+        // Default behaviour (allowLate omitted = false): window closed next day.
+        $now = $this->makeNow('2026-08-25 00:00:00', 'UTC');
+        $this->assertFalse(WindowCheck::isPostingOpen('UTC', '2026-08-24', $now));
+    }
 }

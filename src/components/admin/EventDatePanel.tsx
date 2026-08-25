@@ -5,6 +5,8 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Switch from '@mui/material/Switch';
 import { AdminSettingsSchema } from '@/schemas/admin.schema';
 
 const isPastDate = (dateStr: string): boolean => {
@@ -16,6 +18,7 @@ const isPastDate = (dateStr: string): boolean => {
 
 export const EventDatePanel = () => {
   const [eventDate, setEventDate] = useState('');
+  const [allowLate, setAllowLate] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -28,6 +31,7 @@ export const EventDatePanel = () => {
         const raw: unknown = await res.json();
         const parsed = AdminSettingsSchema.parse(raw);
         setEventDate(parsed.event_date ?? '');
+        setAllowLate(parsed.allow_late_submissions ?? false);
       } finally {
         setIsLoading(false);
       }
@@ -43,7 +47,7 @@ export const EventDatePanel = () => {
       const res = await fetch('/api/admin/settings.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event_date: eventDate }),
+        body: JSON.stringify({ event_date: eventDate, allow_late_submissions: allowLate }),
       });
       if (res.ok) {
         setSaved(true);
@@ -85,6 +89,20 @@ export const EventDatePanel = () => {
         }}
         InputLabelProps={{ shrink: true, htmlFor: 'event-date' }}
         inputProps={{ 'aria-label': 'Event date' }}
+      />
+
+      <FormControlLabel
+        control={
+          <Switch
+            checked={allowLate}
+            onChange={(e) => {
+              setAllowLate(e.target.checked);
+              setSaved(false);
+            }}
+            inputProps={{ 'aria-label': 'Allow late submissions' }}
+          />
+        }
+        label="Keep submissions open after the event date (for late submitters)"
       />
 
       <Button

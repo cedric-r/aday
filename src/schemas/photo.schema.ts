@@ -24,6 +24,7 @@ export const PostPhotoResponseSchema = z.object({
 export const StatusResponseSchema = z.object({
   window_open: z.boolean().nullable(),
   event_date: z.string().nullable(),
+  allow_late_submissions: z.boolean().optional(),
   message: z.string(),
 });
 

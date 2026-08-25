@@ -205,6 +205,52 @@ final class AdminUsersTest extends TestCase
         $this->assertSame('2026-12-01', $res['json']['event_date']);
     }
 
+    public function test_get_allow_late_submissions_defaults_to_false(): void
+    {
+        $admin = TestHelper::createUser(['username' => 'admin', 'email' => 'admin@example.com', 'is_admin' => 1]);
+        $_SESSION['user_id'] = $admin['id'];
+
+        $res = TestHelper::request($this->settingsFile);
+
+        $this->assertSame(200, $res['status']);
+        $this->assertFalse($res['json']['allow_late_submissions']);
+    }
+
+    public function test_post_saves_allow_late_submissions(): void
+    {
+        $admin = TestHelper::createUser(['username' => 'admin', 'email' => 'admin@example.com', 'is_admin' => 1]);
+        $_SESSION['user_id'] = $admin['id'];
+
+        $res = TestHelper::request($this->settingsFile, 'POST', [
+            'event_date'             => '2026-08-24',
+            'allow_late_submissions' => true,
+        ]);
+
+        $this->assertSame(200, $res['status']);
+        $this->assertTrue($res['json']['allow_late_submissions']);
+
+        $row = db()->query("SELECT value FROM settings WHERE key = 'allow_late_submissions'")->fetch();
+        $this->assertNotFalse($row);
+        $this->assertSame('1', $row['value']);
+    }
+
+    public function test_post_defaults_allow_late_submissions_to_off_when_absent(): void
+    {
+        $admin = TestHelper::createUser(['username' => 'admin', 'email' => 'admin@example.com', 'is_admin' => 1]);
+        $_SESSION['user_id'] = $admin['id'];
+
+        $res = TestHelper::request($this->settingsFile, 'POST', [
+            'event_date' => '2026-08-24',
+        ]);
+
+        $this->assertSame(200, $res['status']);
+        $this->assertFalse($res['json']['allow_late_submissions']);
+
+        $row = db()->query("SELECT value FROM settings WHERE key = 'allow_late_submissions'")->fetch();
+        $this->assertNotFalse($row);
+        $this->assertSame('0', $row['value']);
+    }
+
     // -----------------------------------------------------------------------
     // PUT — substack_url + password fields
     // -----------------------------------------------------------------------

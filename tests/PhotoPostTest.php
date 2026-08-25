@@ -56,6 +56,57 @@ final class PhotoPostTest extends TestCase
         $this->assertStringContainsString('closed', $res['json']['error']);
     }
 
+    public function test_window_open_after_event_when_late_submissions_enabled(): void
+    {
+        $user = TestHelper::createUser(['username' => 'alice', 'email' => 'alice@example.com']);
+        $_SESSION['user_id'] = $user['id'];
+        // Event was yesterday, but late submissions are allowed.
+        TestHelper::setSetting('event_date', date('Y-m-d', strtotime('-1 day')));
+        TestHelper::setSetting('allow_late_submissions', '1');
+
+        // Create a real temp file with JPEG magic bytes so upload validation passes.
+        $tmp = tempnam(sys_get_temp_dir(), 'aday_test_');
+        file_put_contents($tmp, "\xFF\xD8\xFF\xE0" . str_repeat("\x00", 16));
+        $fakeFiles = [
+            'photo' => [
+                'error'    => UPLOAD_ERR_OK,
+                'size'     => filesize($tmp),
+                'tmp_name' => $tmp,
+                'name'     => 'late.jpg',
+            ],
+        ];
+
+        $res = TestHelper::request(
+            $this->photosFile,
+            'POST',
+            ['description' => 'Late film photo'],
+            [],
+            [],
+            $fakeFiles
+        );
+
+        $uploadDir = dirname(__DIR__) . '/uploads/alice/';
+        if (is_dir($uploadDir)) {
+            foreach (glob($uploadDir . '*.jpg') ?: [] as $f) {
+                unlink($f);
+            }
+        }
+
+        $this->assertSame(201, $res['status']);
+    }
+
+    public function test_window_closed_after_event_when_late_disabled(): void
+    {
+        $user = TestHelper::createUser(['username' => 'alice', 'email' => 'alice@example.com']);
+        $_SESSION['user_id'] = $user['id'];
+        TestHelper::setSetting('event_date', date('Y-m-d', strtotime('-1 day')));
+        // allow_late_submissions NOT set → defaults to off.
+
+        $res = TestHelper::request($this->photosFile, 'POST');
+        $this->assertSame(403, $res['status']);
+        $this->assertStringContainsString('closed', $res['json']['error']);
+    }
+
     public function test_valid_post_with_fake_file_returns_201_and_stores_in_db(): void
     {
         $user = TestHelper::createUser(['username' => 'alice', 'email' => 'alice@example.com']);

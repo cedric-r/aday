@@ -21,8 +21,13 @@ if ($method === 'GET') {
     $stmt->execute([':key' => 'event_date']);
     $row = $stmt->fetch();
 
+    $stmt = db()->prepare('SELECT value FROM settings WHERE key = :key');
+    $stmt->execute([':key' => 'allow_late_submissions']);
+    $lateRow = $stmt->fetch();
+
     echo json_encode([
-        'event_date' => $row !== false ? $row['value'] : null,
+        'event_date'             => $row !== false ? $row['value'] : null,
+        'allow_late_submissions' => $lateRow !== false && $lateRow['value'] === '1',
     ]);
     return;
 }
@@ -50,11 +55,23 @@ if ($method === 'POST') {
         respond(422, 'event_date is not a valid date.');
     }
 
+    $allowLate = isset($data['allow_late_submissions'])
+        ? (bool) $data['allow_late_submissions']
+        : false;
+
     db()->prepare(
         'INSERT OR REPLACE INTO settings (key, value) VALUES (:key, :value)'
     )->execute([':key' => 'event_date', ':value' => $eventDate]);
 
-    echo json_encode(['message' => 'Event date saved.', 'event_date' => $eventDate]);
+    db()->prepare(
+        'INSERT OR REPLACE INTO settings (key, value) VALUES (:key, :value)'
+    )->execute([':key' => 'allow_late_submissions', ':value' => $allowLate ? '1' : '0']);
+
+    echo json_encode([
+        'message'                => 'Event date saved.',
+        'event_date'             => $eventDate,
+        'allow_late_submissions' => $allowLate,
+    ]);
     return;
 }
 

@@ -27,7 +27,13 @@ if ($method === 'POST') {
         respond(503, 'Event not configured.');
     }
 
-    if (!WindowCheck::isPostingOpen((string) $user['timezone'], $eventDate)) {
+    // Load late-submission toggle (default off).
+    $stmt = db()->prepare('SELECT value FROM settings WHERE key = :key');
+    $stmt->execute([':key' => 'allow_late_submissions']);
+    $lateRow   = $stmt->fetch();
+    $allowLate = $lateRow !== false && $lateRow['value'] === '1';
+
+    if (!WindowCheck::isPostingOpen((string) $user['timezone'], $eventDate, allowLate: $allowLate)) {
         respond(403, 'Posting window closed.');
     }
 

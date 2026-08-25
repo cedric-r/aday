@@ -17,11 +17,13 @@ export const AdminUserListSchema = z.array(AdminUserSchema);
 
 export const AdminSettingsSchema = z.object({
   event_date: z.string().nullable(),
+  allow_late_submissions: z.boolean().optional(),
 });
 
 export const AdminSettingsSaveResponseSchema = z.object({
   message: z.string(),
   event_date: z.string(),
+  allow_late_submissions: z.boolean().optional(),
 });
 
 export const SubmissionSchema = z.object({

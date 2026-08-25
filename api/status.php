@@ -18,18 +18,25 @@ $eventDate = $row !== false ? (string) $row['value'] : null;
 
 if ($eventDate === null) {
     echo json_encode([
-        'window_open' => false,
-        'event_date'  => null,
-        'message'     => 'Event not yet scheduled.',
+        'window_open'            => false,
+        'event_date'             => null,
+        'allow_late_submissions' => false,
+        'message'                => 'Event not yet scheduled.',
     ]);
     return;
 }
 
 $user       = Auth::currentUser();
 $windowOpen = null;
+$allowLate  = false;
 
 if ($user !== null) {
-    $windowOpen = WindowCheck::isPostingOpen((string) $user['timezone'], $eventDate);
+    $stmt = db()->prepare('SELECT value FROM settings WHERE key = :key');
+    $stmt->execute([':key' => 'allow_late_submissions']);
+    $lateRow   = $stmt->fetch();
+    $allowLate = $lateRow !== false && $lateRow['value'] === '1';
+
+    $windowOpen = WindowCheck::isPostingOpen((string) $user['timezone'], $eventDate, allowLate: $allowLate);
 }
 
 $message = match (true) {
@@ -39,7 +46,8 @@ $message = match (true) {
 };
 
 echo json_encode([
-    'window_open' => $windowOpen,
-    'event_date'  => $eventDate,
-    'message'     => $message,
+    'window_open'            => $windowOpen,
+    'event_date'             => $eventDate,
+    'allow_late_submissions' => $allowLate,
+    'message'                => $message,
 ]);
