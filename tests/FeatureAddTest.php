@@ -115,6 +115,31 @@ final class FeatureAddTest extends TestCase
         $this->assertSame((int) $b['id'], (int) $res['json']['photos'][0]['id']);
     }
 
+    public function test_photographer_filter_returns_only_that_users_photos(): void
+    {
+        $alice = TestHelper::createUser(['username' => 'alicef', 'email' => 'alicef@example.com']);
+        $bob   = TestHelper::createUser(['username' => 'bobf', 'email' => 'bobf@example.com']);
+        TestHelper::createPhoto(['user_id' => $alice['id'], 'filename' => 'a1.jpg']);
+        TestHelper::createPhoto(['user_id' => $bob['id'], 'filename' => 'b1.jpg']);
+
+        $res = TestHelper::request($this->photosFile, 'GET', [], ['photographer' => 'bobf']);
+
+        $this->assertSame(200, $res['status']);
+        $this->assertCount(1, $res['json']['photos']);
+        $this->assertSame('bobf', $res['json']['photos'][0]['username']);
+    }
+
+    public function test_photographer_filter_ignores_pending_users(): void
+    {
+        $pending = TestHelper::createUser(['username' => 'pendf', 'email' => 'pendf@example.com', 'status' => 'pending']);
+        TestHelper::createPhoto(['user_id' => $pending['id'], 'filename' => 'p1.jpg']);
+
+        $res = TestHelper::request($this->photosFile, 'GET', [], ['photographer' => 'pendf']);
+
+        $this->assertSame(200, $res['status']);
+        $this->assertCount(0, $res['json']['photos']);
+    }
+
     public function test_stats_returns_total_and_48_hour_buckets(): void
     {
         $user = TestHelper::createUser(['username' => 'stats', 'email' => 'stats@example.com']);

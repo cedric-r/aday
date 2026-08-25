@@ -95,6 +95,7 @@ if ($method === 'GET') {
     $after  = isset($_GET['after'])  ? trim($_GET['after'])  : null;
     $single = isset($_GET['photo']) ? (int) $_GET['photo'] : 0;
     $highlights = isset($_GET['highlight']) && $_GET['highlight'] !== '0';
+    $photographer = isset($_GET['photographer']) ? trim((string) $_GET['photographer']) : '';
 
     $baseSelect = '
         SELECT p.id, u.username, u.name, u.substack_url,
@@ -107,7 +108,18 @@ if ($method === 'GET') {
 
     $nextCursor = null;
 
-    if ($single > 0) {
+    if ($photographer !== '') {
+        // Filter by a single (validated) photographer's username — used by
+        // per-photographer embeds.
+        $stmt = db()->prepare(
+            $baseSelect .
+            'WHERE u.username = :username AND u.status = :status
+             ORDER BY p.posted_at DESC, p.id DESC
+             LIMIT 200'
+        );
+        $stmt->execute([':username' => $photographer, ':status' => 'validated']);
+        $photos = $stmt->fetchAll();
+    } elseif ($single > 0) {
         // Single photo by id (used by the lightbox deep-link when the photo
         // is not already in the loaded feed page).
         $stmt = db()->prepare($baseSelect . 'WHERE p.id = :id');

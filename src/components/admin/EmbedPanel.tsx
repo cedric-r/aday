@@ -1,11 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
+import { AdminUserListSchema } from '@/schemas/admin.schema';
 
-const IFRAME_SNIPPET = `<iframe
-  src="https://aday.photoni.st/embed"
+const iframeFor = (src: string) =>
+  `<iframe
+  src="${src}"
   width="100%"
   height="700"
   frameborder="0"
@@ -13,11 +17,41 @@ const IFRAME_SNIPPET = `<iframe
   style="border:0; border-radius:8px;"
 ></iframe>`;
 
-const LINK_SNIPPET = `Live gallery: https://aday.photoni.st/embed`;
+const BASE = 'https://aday.photoni.st/embed';
 
 /** Copy-paste widget snippets for embedding the live feed elsewhere (Substack…). */
 export const EmbedPanel = () => {
+  const [users, setUsers] = useState<{ username: string; name: string }[]>([]);
+  const [photographer, setPhotographer] = useState('');
+  const [dark, setDark] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    // Load validated users for the photographer dropdown (admin-only endpoint).
+    fetch('/api/admin/users.php')
+      .then((r) => r.json())
+      .then((raw: unknown) => {
+        const parsed = AdminUserListSchema.safeParse(raw);
+        if (parsed.success) {
+          setUsers(
+            parsed.data
+              .filter((u) => u.status === 'validated')
+              .map((u) => ({ username: u.username, name: u.name }))
+              .sort((a, b) => a.name.localeCompare(b.name)),
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const query = new URLSearchParams();
+  if (photographer) query.set('photographer', photographer);
+  if (dark) query.set('theme', 'dark');
+  const qs = query.toString();
+  const src = qs ? `${BASE}?${qs}` : BASE;
+
+  const iframeSnippet = iframeFor(src);
+  const linkSnippet = `Live gallery: ${src}`;
 
   const copy = async (text: string) => {
     try {
@@ -42,6 +76,34 @@ export const EmbedPanel = () => {
 
       {copied && <Alert severity="success" sx={{ mb: 2 }}>Copied!</Alert>}
 
+      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+        <TextField
+          select
+          label="Photographer"
+          value={photographer}
+          onChange={(e) => setPhotographer(e.target.value)}
+          size="small"
+          sx={{ minWidth: 220 }}
+        >
+          <MenuItem value="">
+            <em>Everyone (whole gallery)</em>
+          </MenuItem>
+          {users.map((u) => (
+            <MenuItem key={u.username} value={u.username}>
+              {u.name} (@{u.username})
+            </MenuItem>
+          ))}
+        </TextField>
+        <Button
+          size="small"
+          variant={dark ? 'contained' : 'outlined'}
+          onClick={() => setDark((d) => !d)}
+          sx={{ alignSelf: 'center' }}
+        >
+          {dark ? 'Dark theme' : 'Light theme'}
+        </Button>
+      </Box>
+
       <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
         iframe snippet
       </Typography>
@@ -56,9 +118,9 @@ export const EmbedPanel = () => {
           mb: 1,
         }}
       >
-        {IFRAME_SNIPPET}
+        {iframeSnippet}
       </Box>
-      <Button size="small" variant="outlined" onClick={() => void copy(IFRAME_SNIPPET)}>
+      <Button size="small" variant="outlined" onClick={() => void copy(iframeSnippet)}>
         Copy iframe
       </Button>
 
@@ -69,9 +131,9 @@ export const EmbedPanel = () => {
         component="pre"
         sx={{ bgcolor: 'action.hover', p: 2, borderRadius: 1, overflowX: 'auto', fontSize: 12, mb: 1 }}
       >
-        {LINK_SNIPPET}
+        {linkSnippet}
       </Box>
-      <Button size="small" variant="outlined" onClick={() => void copy(LINK_SNIPPET)}>
+      <Button size="small" variant="outlined" onClick={() => void copy(linkSnippet)}>
         Copy link
       </Button>
     </Box>

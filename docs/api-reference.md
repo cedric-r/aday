@@ -456,6 +456,7 @@ Public feed with cursor pagination.
 | `limit` | int | Default 20, max 50 |
 | `photo` | int | Return a single photo by id (lightbox deep-link) |
 | `highlight` | flag | Return only admin-highlighted photos (max 50) |
+| `photographer` | username | Return only that (validated) photographer's photos — used by per-photographer embeds |
 
 No params → latest 20 photos, newest first.
 

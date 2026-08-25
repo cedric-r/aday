@@ -23,7 +23,7 @@ const isBeforeEventDate = (eventDate: string): boolean => {
   return todayStr < eventDate;
 };
 
-export const PhotoFeed = ({ eventDate = null }: { eventDate?: string | null }) => {
+export const PhotoFeed = ({ eventDate = null, photographer = null }: { eventDate?: string | null; photographer?: string | null }) => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoadingInitial, setIsLoadingInitial] = useState(true);
@@ -31,6 +31,10 @@ export const PhotoFeed = ({ eventDate = null }: { eventDate?: string | null }) =
   const [error, setError] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<{ photos: Photo[]; index: number } | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const feedQuery = photographer
+    ? `/api/photos.php?photographer=${encodeURIComponent(photographer)}&limit=20`
+    : '/api/photos.php?limit=20';
 
   const latestTimestampRef = useRef<string | null>(null);
   const isPollingRef = useRef(false);
@@ -45,7 +49,7 @@ export const PhotoFeed = ({ eventDate = null }: { eventDate?: string | null }) =
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await fetchPhotos('/api/photos.php?limit=20');
+        const data = await fetchPhotos(feedQuery);
         setPhotos(data.photos);
         setNextCursor(data.next_cursor);
         if (data.photos.length > 0) {
@@ -58,7 +62,7 @@ export const PhotoFeed = ({ eventDate = null }: { eventDate?: string | null }) =
       }
     };
     void load();
-  }, [fetchPhotos]);
+  }, [feedQuery, fetchPhotos]);
 
   // Deep link (?photo=N): open the lightbox once the initial feed is known,
   // fetching the single photo if it is not in the loaded page.
@@ -111,9 +115,12 @@ export const PhotoFeed = ({ eventDate = null }: { eventDate?: string | null }) =
       isPollingRef.current = true;
       try {
         const since = latestTimestampRef.current;
+        const pollQuery = photographer
+          ? `/api/photos.php?photographer=${encodeURIComponent(photographer)}`
+          : '/api/photos.php';
         const url = since
-          ? `/api/photos.php?after=${encodeURIComponent(since)}&limit=50`
-          : '/api/photos.php?limit=20';
+          ? `${pollQuery}&after=${encodeURIComponent(since)}&limit=50`
+          : `${pollQuery}?limit=20`;
         const data = await fetchPhotos(url);
         if (data.photos.length > 0) {
           setPhotos((prev) => [...data.photos, ...prev]);
@@ -158,7 +165,7 @@ export const PhotoFeed = ({ eventDate = null }: { eventDate?: string | null }) =
     return (
       <Box display="flex" flexDirection="column" alignItems="center" textAlign="center" gap={3} mt={2}>
         <Typography color="text.secondary">
-          No photos yet. Check back soon!
+          {photographer ? 'No photos from this photographer yet. Check back soon!' : 'No photos yet. Check back soon!'}
         </Typography>
         {eventDate && isBeforeEventDate(eventDate) && (
           <Typography color="text.secondary">
