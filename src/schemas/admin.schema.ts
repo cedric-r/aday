@@ -34,6 +34,8 @@ export const SubmissionSchema = z.object({
   description: z.string(),
   posted_at: z.string(),
   highlight: z.union([z.literal(0), z.literal(1)]).transform(Boolean).optional(),
+  hidden: z.union([z.literal(0), z.literal(1)]).transform(Boolean).optional(),
+  thumb_url: z.string().nullable().optional(),
 });
 
 export const SubmissionListSchema = z.array(SubmissionSchema);

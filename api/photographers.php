@@ -35,11 +35,19 @@ if ($username !== null && $username !== '') {
                 highlight, gear,
                 exif_make, exif_model, exif_focal, exif_aperture, exif_shutter, exif_iso
          FROM photos
-         WHERE user_id = :user_id
+         WHERE user_id = :user_id AND hidden = 0
          ORDER BY posted_at DESC, id DESC'
     );
     $photoStmt->execute([':user_id' => (int) $user['id']]);
     $photos = $photoStmt->fetchAll();
+
+    // Decorate with thumbnail URL.
+    $photos = array_map(static function (array $p) use ($user): array {
+        $p['thumb_url'] = is_file(dirname(__DIR__) . "/uploads/{$user['username']}/thumbs/{$p['filename']}")
+            ? "/uploads/{$user['username']}/thumbs/{$p['filename']}"
+            : null;
+        return $p;
+    }, $photos);
 
     echo json_encode([
         'username'    => $user['username'],

@@ -120,6 +120,47 @@ class Mailer
     }
 
     /**
+     * Send the post-event wrap-up email to a list of participant addresses.
+     *
+     * @param  list<string> $recipients
+     * @return void
+     */
+    public function sendWrapUp(array $recipients): void
+    {
+        $base = rtrim((string) env('APP_URL', 'https://aday.photoni.st'), '/');
+
+        $body = implode("\n", [
+            "Thanks for taking part in Document Your Life.",
+            "",
+            "The gallery is live — relive the day and see every photographer's",
+            "take on the same 24 hours:",
+            "",
+            "  {$base}/",
+            "",
+            "Each photo has its own page — find yours and share it:",
+            "  {$base}/embed",
+            "",
+            "See you next event.",
+        ]);
+
+        try {
+            $mail = $this->buildMailer();
+            foreach ($recipients as $email) {
+                $mail->addAddress($email);
+            }
+            $mail->Subject = '[Document Your Life] Your photos are live';
+            $mail->Body    = $body;
+            $mail->send();
+        } catch (PHPMailerException $e) {
+            error_log(
+                date('Y-m-d H:i:s') . " [Mailer] Failed to send wrap-up email: " . $e->getMessage() . "\n",
+                3,
+                dirname(__DIR__) . '/logs/mail.log'
+            );
+        }
+    }
+
+    /**
      * Build and configure a PHPMailer instance.
      */
     protected function buildMailer(): PHPMailer

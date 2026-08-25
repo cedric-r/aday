@@ -140,6 +140,34 @@ final class FeatureAddTest extends TestCase
         $this->assertCount(0, $res['json']['photos']);
     }
 
+    public function test_hidden_photo_excluded_from_single_and_feed(): void
+    {
+        $user = TestHelper::createUser(['username' => 'hid', 'email' => 'hid@example.com']);
+        $photo = TestHelper::createPhoto(['user_id' => $user['id'], 'filename' => 'h.jpg']);
+        db()->prepare('UPDATE photos SET hidden = 1 WHERE id = :id')->execute([':id' => $photo['id']]);
+
+        // Feed (default) must not include it.
+        $feed = TestHelper::request($this->photosFile);
+        $this->assertCount(0, $feed['json']['photos']);
+
+        // Single-photo lookup must treat it as not found.
+        $single = TestHelper::request($this->photosFile, 'GET', [], ['photo' => (string) $photo['id']]);
+        $this->assertCount(0, $single['json']['photos']);
+    }
+
+    public function test_photo_without_thumb_returns_null_thumb_url(): void
+    {
+        $user = TestHelper::createUser(['username' => 'tnull', 'email' => 'tnull@example.com']);
+        TestHelper::createPhoto(['user_id' => $user['id'], 'filename' => 'no-thumb.jpg']);
+
+        $res = TestHelper::request($this->photosFile);
+
+        $this->assertSame(200, $res['status']);
+        $this->assertCount(1, $res['json']['photos']);
+        $this->assertArrayHasKey('thumb_url', $res['json']['photos'][0]);
+        $this->assertNull($res['json']['photos'][0]['thumb_url']);
+    }
+
     public function test_stats_returns_total_and_48_hour_buckets(): void
     {
         $user = TestHelper::createUser(['username' => 'stats', 'email' => 'stats@example.com']);
@@ -180,6 +208,26 @@ final class FeatureAddTest extends TestCase
         $this->assertSame(200, $list['status']);
         $this->assertCount(1, $list['json']);
         $this->assertSame(1, (int) $list['json'][0]['highlight']);
+    }
+
+    public function test_admin_toggle_hidden_updates_flag_and_get_includes_it(): void
+    {
+        $admin = TestHelper::createUser(['username' => 'adminh', 'email' => 'adminh@example.com', 'is_admin' => 1]);
+        $_SESSION['user_id'] = $admin['id'];
+        $photo = TestHelper::createPhoto(['user_id' => $admin['id'], 'filename' => 'c.jpg']);
+
+        $res = TestHelper::request($this->submissionsFile, 'POST', [
+            'id'     => $photo['id'],
+            'hidden' => true,
+        ]);
+
+        $this->assertSame(200, $res['status']);
+        $stored = (int) db()->query('SELECT hidden FROM photos WHERE id = ' . (int) $photo['id'])->fetchColumn();
+        $this->assertSame(1, $stored);
+
+        $list = TestHelper::request($this->submissionsFile);
+        $this->assertSame(200, $list['status']);
+        $this->assertSame(1, (int) $list['json'][0]['hidden']);
     }
 
     public function test_metadata_csv_export_includes_headers_and_rows(): void

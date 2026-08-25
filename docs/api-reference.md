@@ -333,22 +333,27 @@ Image URL: `/uploads/{username}/{filename}`
 
 ### POST /api/admin/submissions.php
 
-Set the home-page highlight flag for a photo.
+Set one or both admin flags for a photo: `highlight` (home-page strip) and/or
+`hidden` (unlisted from all public surfaces).
 
 **Request body**
 ```json
 { "id": 42, "highlight": true }
 ```
+or
+```json
+{ "id": 42, "hidden": true }
+```
 
 **Response — 200 OK**
 ```json
-{ "message": "Highlight updated.", "id": 42, "highlight": true }
+{ "message": "Photo updated.", "id": 42, "highlight": true, "hidden": false }
 ```
 
 **Errors**
 | Code | Condition |
 |---|---|
-| 400 | Missing or invalid id/highlight |
+| 400 | Missing or invalid id/highlight/hidden |
 | 404 | Photo not found |
 
 ---
@@ -458,10 +463,12 @@ Public feed with cursor pagination.
 | `highlight` | flag | Return only admin-highlighted photos (max 50) |
 | `photographer` | username | Return only that (validated) photographer's photos — used by per-photographer embeds |
 
-No params → latest 20 photos, newest first.
+No params → latest 20 photos, newest first. Hidden (unlisted) photos are never
+included in any public response.
 
 Each photo now also includes (nullable/0-1): `highlight`, `gear`, `exif_make`,
-`exif_model`, `exif_focal`, `exif_aperture`, `exif_shutter`, `exif_iso`.
+`exif_model`, `exif_focal`, `exif_aperture`, `exif_shutter`, `exif_iso`,
+`thumb_url` (thumbnail path when available, else `null`).
 
 **Response — 200 OK**
 ```json

@@ -15,6 +15,7 @@ const PhotographerPage = lazy(() => import('@/pages/PhotographerPage').then((m) 
 const PostPage = lazy(() => import('@/pages/PostPage').then((m) => ({ default: m.PostPage })));
 const AdminPage = lazy(() => import('@/pages/AdminPage').then((m) => ({ default: m.AdminPage })));
 const EmbedPage = lazy(() => import('@/pages/EmbedPage').then((m) => ({ default: m.EmbedPage })));
+const PhotoPage = lazy(() => import('@/pages/PhotoPage').then((m) => ({ default: m.PhotoPage })));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
 
 const PageSpinner = () => (
@@ -47,6 +48,7 @@ export const App = () => (
             <Route path="/login" element={<LoginPage />} />
             <Route path="/index" element={<IndexPage />} />
             <Route path="/photographers/:username" element={<PhotographerPage />} />
+            <Route path="/photos/:id" element={<PhotoPage />} />
             <Route
               path="/post"
               element={

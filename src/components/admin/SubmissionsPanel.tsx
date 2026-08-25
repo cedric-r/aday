@@ -90,6 +90,36 @@ export const SubmissionsPanel = () => {
     );
   };
 
+  const handleToggleHidden = async (s: Submission) => {
+    setActionError(null);
+    const hidden = !s.hidden;
+    const res = await fetch('/api/admin/submissions.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: s.id, hidden }),
+    });
+    if (!res.ok) {
+      setActionError('Failed to update visibility. Please try again.');
+      return;
+    }
+    setSubmissions((prev) =>
+      prev.map((x) => (x.id === s.id ? { ...x, hidden } : x)),
+    );
+  };
+
+  const handleWrapUp = async () => {
+    if (!globalThis.confirm('Email all participants that the gallery is live? (Sends once.)')) return;
+    setActionError(null);
+    const res = await fetch('/api/admin/wrapup.php', { method: 'POST' });
+    const raw: unknown = await res.json();
+    const msg = (raw as { message?: string })?.message ?? 'Wrap-up email processed.';
+    if (res.ok) {
+      globalThis.alert(msg);
+    } else {
+      setActionError(msg);
+    }
+  };
+
   if (isLoading) {
     return <Box display="flex" justifyContent="center" mt={2}><CircularProgress /></Box>;
   }
@@ -106,6 +136,9 @@ export const SubmissionsPanel = () => {
         </Button>
         <Button variant="outlined" onClick={handleExportCsv}>
           Export metadata (CSV)
+        </Button>
+        <Button variant="outlined" color="success" onClick={() => { void handleWrapUp(); }}>
+          Email participants
         </Button>
       </Box>
 
@@ -128,7 +161,7 @@ export const SubmissionsPanel = () => {
                 <TableCell>
                   <Box
                     component="img"
-                    src={`/uploads/${s.username}/${s.filename}`}
+                    src={s.thumb_url || `/uploads/${s.username}/${s.filename}`}
                     alt={s.name}
                     sx={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 0.5 }}
                   />
@@ -158,6 +191,16 @@ export const SubmissionsPanel = () => {
                       onClick={() => { void handleToggleHighlight(s); }}
                     >
                       {s.highlight ? '★' : '☆'}
+                    </Button>
+                    <Button
+                      size="small"
+                      variant={s.hidden ? 'contained' : 'outlined'}
+                      color={s.hidden ? 'error' : 'inherit'}
+                      aria-label={s.hidden ? 'Unhide photo' : 'Hide photo'}
+                      title="Hide/unlist from public pages"
+                      onClick={() => { void handleToggleHidden(s); }}
+                    >
+                      {s.hidden ? '🙈' : '👁'}
                     </Button>
                     <Button
                       size="small"

@@ -17,6 +17,7 @@ export const PhotoSchema = z.object({
   exif_aperture: z.string().nullable().optional(),
   exif_shutter: z.string().nullable().optional(),
   exif_iso: z.string().nullable().optional(),
+  thumb_url: z.string().nullable().optional(),
 });
 
 export const PhotoFeedResponseSchema = z.object({

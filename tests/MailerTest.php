@@ -125,4 +125,39 @@ final class MailerTest extends TestCase
             $mailer->lastMail->Body
         );
     }
+
+    // -----------------------------------------------------------------------
+    // Wrap-up email — sent once, to validated participants
+    // -----------------------------------------------------------------------
+
+    public function test_wrapup_sends_to_validated_participants_once_and_guards(): void
+    {
+        TestHelper::createUser(['username' => 'u1', 'email' => 'u1@example.com', 'status' => 'validated']);
+        TestHelper::createUser(['username' => 'u2', 'email' => 'u2@example.com', 'status' => 'validated']);
+        TestHelper::createUser(['username' => 'u3', 'email' => 'u3@example.com', 'status' => 'pending']);
+
+        $mailer = new RecordingMailer();
+        Mailer::setTestInstance($mailer);
+
+        $first = WrapUp::notify();
+        $this->assertSame('sent', $first['status']);
+        $this->assertSame(2, $first['count']);
+
+        sort($mailer->lastMail->to);
+        $this->assertSame(['u1@example.com', 'u2@example.com'], $mailer->lastMail->to);
+        $this->assertSame('[Document Your Life] Your photos are live', $mailer->lastMail->Subject);
+
+        // Second call is a no-op.
+        $second = WrapUp::notify();
+        $this->assertSame('already_sent', $second['status']);
+    }
+
+    public function test_wrapup_no_participants_returns_no_recipients(): void
+    {
+        // Only a pending user — not validated, so no recipients.
+        TestHelper::createUser(['username' => 'p1', 'email' => 'p1@example.com', 'status' => 'pending']);
+
+        $result = WrapUp::notify();
+        $this->assertSame('no_recipients', $result['status']);
+    }
 }

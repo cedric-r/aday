@@ -18,16 +18,27 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
     $stmt = db()->query(
-        'SELECT p.id, u.username, u.name, p.filename, p.description, p.posted_at, p.highlight
+        'SELECT p.id, u.username, u.name, p.filename, p.description, p.posted_at, p.highlight, p.hidden
          FROM photos p
          JOIN users u ON u.id = p.user_id
          ORDER BY p.posted_at DESC'
     );
-    echo json_encode($stmt->fetchAll());
+    $photos = $stmt->fetchAll();
+
+    // Decorate with thumbnail URL (admin table shows small thumbs).
+    $uploadsBase = dirname(__DIR__, 2) . '/uploads';
+    $photos = array_map(static function (array $p) use ($uploadsBase): array {
+        $p['thumb_url'] = is_file($uploadsBase . '/' . $p['username'] . '/thumbs/' . $p['filename'])
+            ? "/uploads/{$p['username']}/thumbs/{$p['filename']}"
+            : null;
+        return $p;
+    }, $photos);
+
+    echo json_encode($photos);
     return;
 }
 
-// -- POST {id, highlight} — toggle the home-page highlight flag ------------
+// -- POST {id, highlight|hidden} — toggle admin flags -----------------------
 
 if ($method === 'POST') {
     $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
@@ -38,23 +49,38 @@ if ($method === 'POST') {
         $data = $_POST;
     }
 
-    $id       = (int) ($data['id'] ?? 0);
+    $id        = (int) ($data['id'] ?? 0);
     $highlight = isset($data['highlight']) ? (int) (bool) $data['highlight'] : -1;
+    $hidden    = isset($data['hidden'])    ? (int) (bool) $data['hidden']    : -1;
 
-    if ($id <= 0 || $highlight < 0) {
-        respond(400, 'id and highlight are required.');
+    if ($id <= 0 || ($highlight < 0 && $hidden < 0)) {
+        respond(400, 'id and highlight/hidden are required.');
+    }
+
+    $sets  = [];
+    $bind  = [':id' => $id];
+    $reply = ['message' => 'Photo updated.', 'id' => $id];
+    if ($highlight >= 0) {
+        $sets[] = 'highlight = :highlight';
+        $bind[':highlight'] = $highlight;
+        $reply['highlight'] = $highlight === 1;
+    }
+    if ($hidden >= 0) {
+        $sets[] = 'hidden = :hidden';
+        $bind[':hidden'] = $hidden;
+        $reply['hidden'] = $hidden === 1;
     }
 
     $stmt = db()->prepare(
-        'UPDATE photos SET highlight = :highlight WHERE id = :id'
+        'UPDATE photos SET ' . implode(', ', $sets) . ' WHERE id = :id'
     );
-    $stmt->execute([':highlight' => $highlight, ':id' => $id]);
+    $stmt->execute($bind);
 
     if ($stmt->rowCount() === 0) {
         respond(404, 'Photo not found.');
     }
 
-    echo json_encode(['message' => 'Highlight updated.', 'id' => $id, 'highlight' => $highlight === 1]);
+    echo json_encode($reply);
     return;
 }
 

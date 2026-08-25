@@ -53,8 +53,14 @@ if ($method === 'POST') {
     $gear        = trim((string) ($_POST['gear'] ?? ''));
     $gear        = $gear === '' ? null : mb_substr($gear, 0, 200);
 
+    $uploadsDir = dirname(__DIR__) . "/uploads/{$user['username']}";
+    $uploadPath = "{$uploadsDir}/{$filename}";
+
     // Capture camera metadata (digital files only; empty for scans/no-EXIF).
-    $exif = Exif::extract(dirname(__DIR__) . "/uploads/{$user['username']}/{$filename}");
+    $exif = Exif::extract($uploadPath);
+
+    // Best-effort thumbnail (GD); the app falls back to the original when it fails.
+    Thumbnails::generate($uploadPath, $uploadsDir, $filename);
 
     db()->prepare(
         'INSERT INTO photos (user_id, filename, description, gear, exif_make, exif_model, exif_focal, exif_aperture, exif_shutter, exif_iso)
@@ -98,49 +104,51 @@ if ($method === 'GET') {
     $photographer = isset($_GET['photographer']) ? trim((string) $_GET['photographer']) : '';
 
     $baseSelect = '
-        SELECT p.id, u.username, u.name, u.substack_url,
-               p.filename, p.description, p.posted_at,
-               p.highlight, p.gear,
-               p.exif_make, p.exif_model, p.exif_focal, p.exif_aperture, p.exif_shutter, p.exif_iso
-        FROM photos p
-        JOIN users u ON u.id = p.user_id
-    ';
+            SELECT p.id, u.username, u.name, u.substack_url,
+                   p.filename, p.description, p.posted_at,
+                   p.highlight, p.gear,
+                   p.exif_make, p.exif_model, p.exif_focal, p.exif_aperture, p.exif_shutter, p.exif_iso
+            FROM photos p
+            JOIN users u ON u.id = p.user_id
+        ';
 
-    $nextCursor = null;
+        // Public feed queries never expose hidden (unlisted) photos.
+        $visible = 'AND p.hidden = 0 ';
+        $nextCursor = null;
 
-    if ($photographer !== '') {
-        // Filter by a single (validated) photographer's username — used by
-        // per-photographer embeds.
-        $stmt = db()->prepare(
-            $baseSelect .
-            'WHERE u.username = :username AND u.status = :status
-             ORDER BY p.posted_at DESC, p.id DESC
-             LIMIT 200'
-        );
-        $stmt->execute([':username' => $photographer, ':status' => 'validated']);
-        $photos = $stmt->fetchAll();
-    } elseif ($single > 0) {
-        // Single photo by id (used by the lightbox deep-link when the photo
-        // is not already in the loaded feed page).
-        $stmt = db()->prepare($baseSelect . 'WHERE p.id = :id');
-        $stmt->execute([':id' => $single]);
-        $photos = $stmt->fetchAll();
-    } elseif ($highlights) {
-        // Admin-picked highlights for the home page strip.
-        $stmt = db()->prepare(
-            $baseSelect .
-            'WHERE p.highlight = 1
-             ORDER BY p.posted_at DESC, p.id DESC
-             LIMIT 50'
-        );
-        $stmt->execute();
-        $photos = $stmt->fetchAll();
-    } elseif ($after !== null && $after !== '') {
+        if ($photographer !== '') {
+            // Filter by a single (validated) photographer's username — used by
+            // per-photographer embeds.
+            $stmt = db()->prepare(
+                $baseSelect .
+                'WHERE u.username = :username AND u.status = :status ' . $visible .
+                'ORDER BY p.posted_at DESC, p.id DESC
+                 LIMIT 200'
+            );
+            $stmt->execute([':username' => $photographer, ':status' => 'validated']);
+            $photos = $stmt->fetchAll();
+        } elseif ($single > 0) {
+            // Single photo by id (used by the lightbox deep-link when the photo
+            // is not already in the loaded page). Hidden photos are treated as not found.
+            $stmt = db()->prepare($baseSelect . 'WHERE p.id = :id ' . $visible);
+            $stmt->execute([':id' => $single]);
+            $photos = $stmt->fetchAll();
+        } elseif ($highlights) {
+            // Admin-picked highlights for the home page strip.
+            $stmt = db()->prepare(
+                $baseSelect .
+                'WHERE p.highlight = 1 ' . $visible .
+                'ORDER BY p.posted_at DESC, p.id DESC
+                 LIMIT 50'
+            );
+            $stmt->execute();
+            $photos = $stmt->fetchAll();
+        } elseif ($after !== null && $after !== '') {
         // Polling variant: photos NEWER than $after, ascending order, then reverse.
         $stmt = db()->prepare(
             $baseSelect .
-            'WHERE p.posted_at > :after
-             ORDER BY p.posted_at ASC, p.id ASC
+            'WHERE p.posted_at > :after ' . $visible .
+            'ORDER BY p.posted_at ASC, p.id ASC
              LIMIT :limit'
         );
         $stmt->bindValue(':after', $after);
@@ -157,8 +165,8 @@ if ($method === 'GET') {
         // Before-cursor: photos older than $before.
         $stmt = db()->prepare(
             $baseSelect .
-            'WHERE p.posted_at < :before
-             ORDER BY p.posted_at DESC, p.id DESC
+            'WHERE p.posted_at < :before ' . $visible .
+            'ORDER BY p.posted_at DESC, p.id DESC
              LIMIT :limit'
         );
         $stmt->bindValue(':before', $before);
@@ -173,6 +181,7 @@ if ($method === 'GET') {
         // Initial load: newest first.
         $stmt = db()->prepare(
             $baseSelect .
+            'WHERE 1=1 ' . $visible .
             'ORDER BY p.posted_at DESC, p.id DESC
              LIMIT :limit'
         );
@@ -184,6 +193,15 @@ if ($method === 'GET') {
             ? $photos[count($photos) - 1]['posted_at']
             : null;
     }
+
+    // Decorate with thumbnail URL (best-effort; null when no thumbs dir yet).
+    $uploadsBase = dirname(__DIR__) . '/uploads';
+    $photos = array_map(static function (array $p) use ($uploadsBase): array {
+        $p['thumb_url'] = is_file($uploadsBase . '/' . $p['username'] . '/thumbs/' . $p['filename'])
+            ? "/uploads/{$p['username']}/thumbs/{$p['filename']}"
+            : null;
+        return $p;
+    }, $photos);
 
     echo json_encode([
         'photos'      => $photos,

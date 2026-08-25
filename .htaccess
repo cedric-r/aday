@@ -19,6 +19,9 @@ RewriteRule .* - [L]
 RewriteRule ^assets/(.*)$ /dist/assets/$1 [L]
 RewriteRule ^documentyourlife\.png$ /dist/documentyourlife.png [L]
 
+# ---- Per-photo pages: server-render social meta tags alongside the SPA ----
+RewriteRule ^photos/([0-9]+)/?$ photo-meta.php?id=$1 [L,QSA]
+
 # ---- SPA entry point ----
 DirectoryIndex /dist/index.html
 

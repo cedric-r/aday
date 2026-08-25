@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
+import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import { PhotoFeedResponseSchema } from '@/schemas/photo.schema';
 import type { Photo } from '@/schemas/photo.schema';
@@ -10,6 +11,8 @@ import { PhotoCard } from './PhotoCard';
 import { PhotoLightbox } from './PhotoLightbox';
 
 const POLL_INTERVAL_MS = 60_000;
+
+type FeedView = 'cards' | 'grid';
 
 const isBeforeEventDate = (eventDate: string): boolean => {
   if (!eventDate) return false;
@@ -31,6 +34,13 @@ export const PhotoFeed = ({ eventDate = null, photographer = null }: { eventDate
   const [error, setError] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<{ photos: Photo[]; index: number } | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [view, setView] = useState<FeedView>(() => {
+    try {
+      return localStorage.getItem('aday_view') === 'grid' ? 'grid' : 'cards';
+    } catch {
+      return 'cards';
+    }
+  });
 
   const feedQuery = photographer
     ? `/api/photos.php?photographer=${encodeURIComponent(photographer)}&limit=20`
@@ -106,6 +116,15 @@ export const PhotoFeed = ({ eventDate = null, photographer = null }: { eventDate
   const handleClose = () => {
     setLightbox(null);
     setSearchParams({}, { replace: true });
+  };
+
+  const changeView = (next: FeedView) => {
+    setView(next);
+    try {
+      localStorage.setItem('aday_view', next);
+    } catch {
+      // storage unavailable — view still applies for this session
+    }
   };
 
   // Polling
@@ -184,9 +203,64 @@ export const PhotoFeed = ({ eventDate = null, photographer = null }: { eventDate
 
   return (
     <Box>
-      {photos.map((photo) => (
-        <PhotoCard key={photo.id} photo={photo} onOpen={handleOpen} />
-      ))}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5, mb: 1 }}>
+        <IconButton
+          aria-label="Cards view"
+          title="Cards view"
+          size="small"
+          color={view === 'cards' ? 'primary' : 'default'}
+          onClick={() => changeView('cards')}
+        >
+          <Box component="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" sx={{ width: 20, height: 20, fill: 'currentColor' }} aria-hidden="true">
+            <path d="M3 5h18v4H3V5zm0 10h18v4H3v-4zm0-5h8v4H3v-4zm11 0h7v4h-7v-4z" />
+          </Box>
+        </IconButton>
+        <IconButton
+          aria-label="Grid view"
+          title="Grid view"
+          size="small"
+          color={view === 'grid' ? 'primary' : 'default'}
+          onClick={() => changeView('grid')}
+        >
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2px', width: 20, height: 20 }} aria-hidden="true">
+            <Box sx={{ bgcolor: 'currentColor', borderRadius: '2px' }} />
+            <Box sx={{ bgcolor: 'currentColor', borderRadius: '2px' }} />
+            <Box sx={{ bgcolor: 'currentColor', borderRadius: '2px' }} />
+            <Box sx={{ bgcolor: 'currentColor', borderRadius: '2px' }} />
+          </Box>
+        </IconButton>
+      </Box>
+
+      {view === 'grid' ? (
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 1 }}>
+          {photos.map((photo) => (
+            <Box
+              key={photo.id}
+              onClick={() => handleOpen(photo)}
+              sx={{
+                aspectRatio: '1',
+                overflow: 'hidden',
+                borderRadius: 1,
+                cursor: 'zoom-in',
+                bgcolor: 'action.hover',
+              }}
+              title={photo.description || photo.name}
+            >
+              <Box
+                component="img"
+                src={photo.thumb_url || `/uploads/${photo.username}/${photo.filename}`}
+                alt={photo.description || `${photo.name}'s photo`}
+                loading="lazy"
+                sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            </Box>
+          ))}
+        </Box>
+      ) : (
+        photos.map((photo) => (
+          <PhotoCard key={photo.id} photo={photo} onOpen={handleOpen} />
+        ))
+      )}
 
       {nextCursor && (
         <Box display="flex" justifyContent="center" mt={2}>

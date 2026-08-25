@@ -39,7 +39,7 @@ api/
   login.php              POST — authenticate; create session
   logout.php             POST — destroy session
   me.php                 GET  — current session user (always 200)
-  photos.php             GET/POST — feed (cursor, single, highlights) + photo upload (gear + EXIF)
+  photos.php             GET/POST — feed (cursor, single, highlights, photographer) + upload (gear + EXIF + thumb)
   photographers.php      GET  — index list or single profile
   stats.php              GET  — total count + 48h hourly histogram
   status.php             GET  — event window status
@@ -47,7 +47,8 @@ api/
     users.php            GET/POST/PUT/DELETE — user management
     validate.php         GET  — approve user via HMAC email link
     settings.php         GET/POST — event date + late-submissions toggle
-    submissions.php      GET/POST/DELETE — submissions + highlight toggle
+    submissions.php      GET/POST/DELETE — submissions + highlight/hidden toggles
+    wrapup.php           POST — send the post-event wrap-up email once
     export.php           GET  — ZIP (photos) or CSV/JSON metadata export
 
 lib/
@@ -55,6 +56,8 @@ lib/
   Mailer.php             PHPMailer wrapper (localhost:25, no auth)
   FileUpload.php         MIME validation + secure file save
   Exif.php               EXIF extraction (make, model, focal, aperture, shutter, ISO)
+  Thumbnails.php         GD square thumbnail generator (best-effort, 320px)
+  WrapUp.php             One-shot post-event participant email (guarded by settings row)
   WindowCheck.php        Timezone-aware posting-window check (event-date-only, or open-ended for late submitters)
   Exporter.php           ZipArchive builder — per-photographer subfolders
   Response.php           json() / error() / created() helpers
@@ -71,10 +74,12 @@ migrations/
   001_create_users.php   users + settings tables
   003_create_photos.php  photos table + indexes
   004_add_photo_fields.php  highlight + gear + EXIF columns
+  005_add_hidden.php     hidden (unlist) flag
   run.php                CLI runner — executes all migrations in order
 
 scripts/
   reset_admin.php        CLI only — deletes setup_complete so setup.php can re-run
+  send_wrapup.php        CLI only — one-shot post-event email to participants (cron-safe)
 
 setup.php                One-time admin bootstrap page (locks after first use)
 router.php               PHP built-in server entry point — serves dist/ SPA or routes API
