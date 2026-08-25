@@ -9,14 +9,21 @@ declare(strict_types=1);
  * photographer profile, single-photo and embed endpoints) without deleting
  * the file or the row.
  *
+ * Idempotent — skips if the column already exists.
+ *
  * @return Closure(PDO): void
  */
 return static function (PDO $db): void {
-    $db->exec(
-        "ALTER TABLE photos ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0"
-    );
+    $hasHidden = false;
+    foreach ($db->query('PRAGMA table_info(photos)') ?: [] as $col) {
+        if ($col['name'] === 'hidden') {
+            $hasHidden = true;
+            break;
+        }
+    }
 
-    $db->exec(
-        'CREATE INDEX IF NOT EXISTS idx_photos_hidden ON photos(hidden)'
-    );
+    if (!$hasHidden) {
+        $db->exec("ALTER TABLE photos ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0");
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_photos_hidden ON photos(hidden)');
+    }
 };
