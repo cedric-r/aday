@@ -19,10 +19,10 @@ const makePhoto = (id: number, posted_at: string) => ({
 const feedResponse = (photos: ReturnType<typeof makePhoto>[], next_cursor: string | null = null) =>
   new Response(JSON.stringify({ photos, next_cursor }), { status: 200 });
 
-const renderFeed = () =>
+const renderFeed = (eventDate?: string | null) =>
   render(
     <MemoryRouter>
-      <PhotoFeed />
+      <PhotoFeed eventDate={eventDate} />
     </MemoryRouter>,
   );
 
@@ -115,6 +115,50 @@ describe('PhotoFeed', () => {
     );
     const logo = screen.getByRole('img', { name: /document your life/i });
     expect(logo).toHaveAttribute('src', '/documentyourlife.png');
+  });
+
+  it('shows event date in empty state when today is before the event date', async () => {
+    mockFetch.mockResolvedValueOnce(feedResponse([]));
+
+    renderFeed('2099-01-01');
+
+    await waitFor(() =>
+      expect(screen.getByText('No photos yet. Check back soon!')).toBeInTheDocument(),
+    );
+    expect(screen.getByText(/event date: 2099-01-01/i)).toBeInTheDocument();
+  });
+
+  it('hides event date in empty state when event date is today or past', async () => {
+    mockFetch.mockResolvedValueOnce(feedResponse([]));
+
+    renderFeed('2000-01-01');
+
+    await waitFor(() =>
+      expect(screen.getByText('No photos yet. Check back soon!')).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/event date:/i)).not.toBeInTheDocument();
+  });
+
+  it('hides event date when none is defined', async () => {
+    mockFetch.mockResolvedValueOnce(feedResponse([]));
+
+    renderFeed(null);
+
+    await waitFor(() =>
+      expect(screen.getByText('No photos yet. Check back soon!')).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/event date:/i)).not.toBeInTheDocument();
+  });
+
+  it('does not show event date when photos exist', async () => {
+    mockFetch.mockResolvedValueOnce(
+      feedResponse([makePhoto(1, '2026-08-24 10:00:00')]),
+    );
+
+    renderFeed('2099-01-01');
+
+    await waitFor(() => expect(screen.getByText('Description 1')).toBeInTheDocument());
+    expect(screen.queryByText(/event date:/i)).not.toBeInTheDocument();
   });
 
   it('shows error state when initial fetch fails', async () => {

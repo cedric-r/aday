@@ -9,7 +9,19 @@ import { PhotoCard } from './PhotoCard';
 
 const POLL_INTERVAL_MS = 60_000;
 
-export const PhotoFeed = () => {
+const isBeforeEventDate = (eventDate: string): boolean => {
+  if (!eventDate) return false;
+  // Build today's local date as YYYY-MM-DD; lexicographic compare is correct for this format.
+  const now = new Date();
+  const todayStr = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-');
+  return todayStr < eventDate;
+};
+
+export const PhotoFeed = ({ eventDate = null }: { eventDate?: string | null }) => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoadingInitial, setIsLoadingInitial] = useState(true);
@@ -100,6 +112,11 @@ export const PhotoFeed = () => {
         <Typography color="text.secondary">
           No photos yet. Check back soon!
         </Typography>
+        {eventDate && isBeforeEventDate(eventDate) && (
+          <Typography color="text.secondary">
+            Event date: {eventDate}
+          </Typography>
+        )}
         <Box
           component="img"
           src="/documentyourlife.png"
