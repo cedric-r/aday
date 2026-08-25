@@ -8,9 +8,10 @@ import { UserTable } from '@/components/admin/UserTable';
 import { UserModal } from '@/components/admin/UserModal';
 import { EventDatePanel } from '@/components/admin/EventDatePanel';
 import { SubmissionsPanel } from '@/components/admin/SubmissionsPanel';
+import { EmbedPanel } from '@/components/admin/EmbedPanel';
 import type { AdminUser } from '@/schemas/admin.schema';
 
-type TabId = 0 | 1 | 2;
+type TabId = 0 | 1 | 2 | 3;
 
 export const AdminPage = () => {
   const [tab, setTab] = useState<TabId>(0);
@@ -30,6 +31,7 @@ export const AdminPage = () => {
         <Tab label="Users" />
         <Tab label="Event Date" />
         <Tab label="Submissions" />
+        <Tab label="Embed" />
       </Tabs>
 
       {tab === 0 && (
@@ -47,6 +49,7 @@ export const AdminPage = () => {
 
       {tab === 1 && <EventDatePanel />}
       {tab === 2 && <SubmissionsPanel />}
+      {tab === 3 && <EmbedPanel />}
 
       {showAddModal && (
         <UserModal

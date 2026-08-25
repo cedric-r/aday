@@ -35,6 +35,14 @@ final class TestHelper
      */
     public static function resetDb(): PDO
     {
+        // Tests pre-seed $_SESSION before calling request(); a previous test
+        // (e.g. logout) may have destroyed the session, in which case writing
+        // to $_SESSION is detached from the session that session_start() later
+        // creates. Restart it here so pre-seeded keys survive.
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
         $fresh = new PDO(
             'sqlite::memory:',
             options: [
@@ -90,6 +98,14 @@ final class TestHelper
         string $contentType = 'application/x-www-form-urlencoded',
     ): array {
         http_response_code(200);
+
+        // A previous test may have destroyed the session (e.g. logout.php
+        // calls session_destroy()), which would make the endpoint's
+        // session_start() discard any $_SESSION we pre-seed here. Re-start it
+        // so pre-seeded keys survive the request.
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
 
         $_SERVER['REQUEST_METHOD'] = strtoupper($method);
         $_SERVER['CONTENT_TYPE']   = $contentType;
@@ -171,17 +187,25 @@ final class TestHelper
     public static function createPhoto(array $overrides = []): array
     {
         $defaults = [
-            'user_id'     => 1,
-            'filename'    => 'test.jpg',
-            'description' => 'Test photo',
-            'posted_at'   => date('Y-m-d H:i:s'),
+            'user_id'      => 1,
+            'filename'     => 'test.jpg',
+            'description'  => 'Test photo',
+            'posted_at'    => date('Y-m-d H:i:s'),
+            'highlight'    => 0,
+            'gear'         => null,
+            'exif_make'    => null,
+            'exif_model'   => null,
+            'exif_focal'   => null,
+            'exif_aperture' => null,
+            'exif_shutter' => null,
+            'exif_iso'     => null,
         ];
 
         $data = array_merge($defaults, $overrides);
 
         db()->prepare(
-            'INSERT INTO photos (user_id, filename, description, posted_at)
-             VALUES (:user_id, :filename, :description, :posted_at)'
+            'INSERT INTO photos (user_id, filename, description, posted_at, highlight, gear, exif_make, exif_model, exif_focal, exif_aperture, exif_shutter, exif_iso)
+             VALUES (:user_id, :filename, :description, :posted_at, :highlight, :gear, :exif_make, :exif_model, :exif_focal, :exif_aperture, :exif_shutter, :exif_iso)'
         )->execute($data);
 
         $data['id'] = (int) db()->lastInsertId();

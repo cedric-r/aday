@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -6,6 +7,7 @@ import Typography from '@mui/material/Typography';
 import { PhotoFeedResponseSchema } from '@/schemas/photo.schema';
 import type { Photo } from '@/schemas/photo.schema';
 import { PhotoCard } from './PhotoCard';
+import { PhotoLightbox } from './PhotoLightbox';
 
 const POLL_INTERVAL_MS = 60_000;
 
@@ -27,6 +29,8 @@ export const PhotoFeed = ({ eventDate = null }: { eventDate?: string | null }) =
   const [isLoadingInitial, setIsLoadingInitial] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState<{ photos: Photo[]; index: number } | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const latestTimestampRef = useRef<string | null>(null);
   const isPollingRef = useRef(false);
@@ -55,6 +59,50 @@ export const PhotoFeed = ({ eventDate = null }: { eventDate?: string | null }) =
     };
     void load();
   }, [fetchPhotos]);
+
+  // Deep link (?photo=N): open the lightbox once the initial feed is known,
+  // fetching the single photo if it is not in the loaded page.
+  useEffect(() => {
+    const raw = searchParams.get('photo');
+    const target = raw ? Number(raw) : 0;
+    if (!target || isLoadingInitial || lightbox) return;
+
+    const idx = photos.findIndex((p) => p.id === target);
+    if (idx >= 0) {
+      setLightbox({ photos, index: idx });
+    } else {
+      void (async () => {
+        try {
+          const data = await fetchPhotos(`/api/photos.php?photo=${target}`);
+          if (data.photos.length > 0) {
+            setLightbox({ photos: data.photos, index: 0 });
+          }
+        } catch {
+          // ignore — just don't open a lightbox for a broken deep link
+        }
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  const handleOpen = (photo: Photo) => {
+    const idx = photos.findIndex((p) => p.id === photo.id);
+    setLightbox({ photos, index: idx >= 0 ? idx : 0 });
+    setSearchParams({ photo: String(photo.id) }, { replace: true });
+  };
+
+  const handleNavigate = (index: number) => {
+    setLightbox((prev) => (prev ? { ...prev, index } : prev));
+    const photo = lightbox?.photos[index];
+    if (photo) {
+      setSearchParams({ photo: String(photo.id) }, { replace: true });
+    }
+  };
+
+  const handleClose = () => {
+    setLightbox(null);
+    setSearchParams({}, { replace: true });
+  };
 
   // Polling
   useEffect(() => {
@@ -130,7 +178,7 @@ export const PhotoFeed = ({ eventDate = null }: { eventDate?: string | null }) =
   return (
     <Box>
       {photos.map((photo) => (
-        <PhotoCard key={photo.id} photo={photo} />
+        <PhotoCard key={photo.id} photo={photo} onOpen={handleOpen} />
       ))}
 
       {nextCursor && (
@@ -143,6 +191,15 @@ export const PhotoFeed = ({ eventDate = null }: { eventDate?: string | null }) =
             {isLoadingMore ? 'Loading…' : 'Load more'}
           </Button>
         </Box>
+      )}
+
+      {lightbox && (
+        <PhotoLightbox
+          photos={lightbox.photos}
+          initialIndex={lightbox.index}
+          onClose={handleClose}
+          onNavigate={handleNavigate}
+        />
       )}
     </Box>
   );

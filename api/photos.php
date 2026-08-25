@@ -50,13 +50,26 @@ if ($method === 'POST') {
     }
 
     $description = trim((string) ($_POST['description'] ?? ''));
+    $gear        = trim((string) ($_POST['gear'] ?? ''));
+    $gear        = $gear === '' ? null : mb_substr($gear, 0, 200);
+
+    // Capture camera metadata (digital files only; empty for scans/no-EXIF).
+    $exif = Exif::extract(dirname(__DIR__) . "/uploads/{$user['username']}/{$filename}");
 
     db()->prepare(
-        'INSERT INTO photos (user_id, filename, description) VALUES (:user_id, :filename, :description)'
+        'INSERT INTO photos (user_id, filename, description, gear, exif_make, exif_model, exif_focal, exif_aperture, exif_shutter, exif_iso)
+         VALUES (:user_id, :filename, :description, :gear, :exif_make, :exif_model, :exif_focal, :exif_aperture, :exif_shutter, :exif_iso)'
     )->execute([
-        ':user_id'     => (int) $user['id'],
-        ':filename'    => $filename,
-        ':description' => $description,
+        ':user_id'      => (int) $user['id'],
+        ':filename'     => $filename,
+        ':description'  => $description,
+        ':gear'         => $gear,
+        ':exif_make'    => $exif['make'],
+        ':exif_model'   => $exif['model'],
+        ':exif_focal'   => $exif['focal'],
+        ':exif_aperture'=> $exif['aperture'],
+        ':exif_shutter' => $exif['shutter'],
+        ':exif_iso'     => $exif['iso'],
     ]);
 
     $id = (int) db()->lastInsertId();
@@ -80,15 +93,37 @@ if ($method === 'GET') {
     $limit  = min(50, max(1, (int) ($_GET['limit'] ?? 20)));
     $before = isset($_GET['before']) ? trim($_GET['before']) : null;
     $after  = isset($_GET['after'])  ? trim($_GET['after'])  : null;
+    $single = isset($_GET['photo']) ? (int) $_GET['photo'] : 0;
+    $highlights = isset($_GET['highlight']) && $_GET['highlight'] !== '0';
 
     $baseSelect = '
         SELECT p.id, u.username, u.name, u.substack_url,
-               p.filename, p.description, p.posted_at
+               p.filename, p.description, p.posted_at,
+               p.highlight, p.gear,
+               p.exif_make, p.exif_model, p.exif_focal, p.exif_aperture, p.exif_shutter, p.exif_iso
         FROM photos p
         JOIN users u ON u.id = p.user_id
     ';
 
-    if ($after !== null && $after !== '') {
+    $nextCursor = null;
+
+    if ($single > 0) {
+        // Single photo by id (used by the lightbox deep-link when the photo
+        // is not already in the loaded feed page).
+        $stmt = db()->prepare($baseSelect . 'WHERE p.id = :id');
+        $stmt->execute([':id' => $single]);
+        $photos = $stmt->fetchAll();
+    } elseif ($highlights) {
+        // Admin-picked highlights for the home page strip.
+        $stmt = db()->prepare(
+            $baseSelect .
+            'WHERE p.highlight = 1
+             ORDER BY p.posted_at DESC, p.id DESC
+             LIMIT 50'
+        );
+        $stmt->execute();
+        $photos = $stmt->fetchAll();
+    } elseif ($after !== null && $after !== '') {
         // Polling variant: photos NEWER than $after, ascending order, then reverse.
         $stmt = db()->prepare(
             $baseSelect .

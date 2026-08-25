@@ -18,12 +18,43 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
     $stmt = db()->query(
-        'SELECT p.id, u.username, u.name, p.filename, p.description, p.posted_at
+        'SELECT p.id, u.username, u.name, p.filename, p.description, p.posted_at, p.highlight
          FROM photos p
          JOIN users u ON u.id = p.user_id
          ORDER BY p.posted_at DESC'
     );
     echo json_encode($stmt->fetchAll());
+    return;
+}
+
+// -- POST {id, highlight} — toggle the home-page highlight flag ------------
+
+if ($method === 'POST') {
+    $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+    if (str_contains($contentType, 'application/json')) {
+        $raw  = (string) file_get_contents('php://input');
+        $data = (array) (json_decode($raw, true) ?? []);
+    } else {
+        $data = $_POST;
+    }
+
+    $id       = (int) ($data['id'] ?? 0);
+    $highlight = isset($data['highlight']) ? (int) (bool) $data['highlight'] : -1;
+
+    if ($id <= 0 || $highlight < 0) {
+        respond(400, 'id and highlight are required.');
+    }
+
+    $stmt = db()->prepare(
+        'UPDATE photos SET highlight = :highlight WHERE id = :id'
+    );
+    $stmt->execute([':highlight' => $highlight, ':id' => $id]);
+
+    if ($stmt->rowCount() === 0) {
+        respond(404, 'Photo not found.');
+    }
+
+    echo json_encode(['message' => 'Highlight updated.', 'id' => $id, 'highlight' => $highlight === 1]);
     return;
 }
 

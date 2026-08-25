@@ -69,6 +69,27 @@ export const SubmissionsPanel = () => {
     globalThis.location.href = '/api/admin/export.php';
   };
 
+  const handleExportCsv = () => {
+    globalThis.location.href = '/api/admin/export.php?format=csv';
+  };
+
+  const handleToggleHighlight = async (s: Submission) => {
+    setActionError(null);
+    const highlight = !s.highlight;
+    const res = await fetch('/api/admin/submissions.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: s.id, highlight }),
+    });
+    if (!res.ok) {
+      setActionError('Failed to update highlight. Please try again.');
+      return;
+    }
+    setSubmissions((prev) =>
+      prev.map((x) => (x.id === s.id ? { ...x, highlight } : x)),
+    );
+  };
+
   if (isLoading) {
     return <Box display="flex" justifyContent="center" mt={2}><CircularProgress /></Box>;
   }
@@ -76,12 +97,15 @@ export const SubmissionsPanel = () => {
   return (
     <Box>
       {actionError && <Alert severity="error" sx={{ mb: 2 }}>{actionError}</Alert>}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
         <Typography variant="h6">
           Submissions ({submissions.length} {submissions.length === 1 ? 'photo' : 'photos'})
         </Typography>
         <Button variant="contained" onClick={handleExport}>
           Export All
+        </Button>
+        <Button variant="outlined" onClick={handleExportCsv}>
+          Export metadata (CSV)
         </Button>
       </Box>
 
@@ -124,14 +148,26 @@ export const SubmissionsPanel = () => {
                   )}
                 </TableCell>
               <TableCell>
-                  <Button
-                    size="small"
-                    color="error"
-                    variant="outlined"
-                    onClick={() => { void handleDelete(s); }}
-                  >
-                    Delete
-                  </Button>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      size="small"
+                      variant={s.highlight ? 'contained' : 'outlined'}
+                      color={s.highlight ? 'warning' : 'inherit'}
+                      aria-label={s.highlight ? 'Remove highlight' : 'Add highlight'}
+                      title="Toggle home-page highlight"
+                      onClick={() => { void handleToggleHighlight(s); }}
+                    >
+                      {s.highlight ? '★' : '☆'}
+                    </Button>
+                    <Button
+                      size="small"
+                      color="error"
+                      variant="outlined"
+                      onClick={() => { void handleDelete(s); }}
+                    >
+                      Delete
+                    </Button>
+                  </Box>
                 </TableCell>
               </TableRow>
             ))}

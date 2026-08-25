@@ -39,20 +39,22 @@ api/
   login.php              POST — authenticate; create session
   logout.php             POST — destroy session
   me.php                 GET  — current session user (always 200)
-  photos.php             GET/POST — feed + photo upload
+  photos.php             GET/POST — feed (cursor, single, highlights) + photo upload (gear + EXIF)
   photographers.php      GET  — index list or single profile
+  stats.php              GET  — total count + 48h hourly histogram
   status.php             GET  — event window status
   admin/
     users.php            GET/POST/PUT/DELETE — user management
     validate.php         GET  — approve user via HMAC email link
     settings.php         GET/POST — event date + late-submissions toggle
-    submissions.php      GET/DELETE — all submissions
-    export.php           GET  — stream ZIP archive
+    submissions.php      GET/POST/DELETE — submissions + highlight toggle
+    export.php           GET  — ZIP (photos) or CSV/JSON metadata export
 
 lib/
   Auth.php               requireAdmin() / requireValidated() / currentUser()
   Mailer.php             PHPMailer wrapper (localhost:25, no auth)
   FileUpload.php         MIME validation + secure file save
+  Exif.php               EXIF extraction (make, model, focal, aperture, shutter, ISO)
   WindowCheck.php        Timezone-aware posting-window check (event-date-only, or open-ended for late submitters)
   Exporter.php           ZipArchive builder — per-photographer subfolders
   Response.php           json() / error() / created() helpers
@@ -68,6 +70,7 @@ config/
 migrations/
   001_create_users.php   users + settings tables
   003_create_photos.php  photos table + indexes
+  004_add_photo_fields.php  highlight + gear + EXIF columns
   run.php                CLI runner — executes all migrations in order
 
 scripts/

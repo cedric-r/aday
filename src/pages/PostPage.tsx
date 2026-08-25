@@ -24,6 +24,7 @@ export const PostPage = () => {
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   const [fileSizeWarning, setFileSizeWarning] = useState(false);
   const [description, setDescription] = useState('');
+  const [gear, setGear] = useState('');
   const [submitState, setSubmitState] = useState<SubmitState>('idle');
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,6 +58,7 @@ export const PostPage = () => {
     const formData = new FormData();
     formData.append('photo', selectedFile);
     formData.append('description', description);
+    formData.append('gear', gear);
 
     try {
       const res = await fetch('/api/photos.php', { method: 'POST', body: formData });
@@ -150,6 +152,17 @@ export const PostPage = () => {
             onChange={(e) => setDescription(e.target.value)}
             inputProps={{ 'aria-label': 'Description' }}
             InputLabelProps={{ htmlFor: 'description' }}
+          />
+
+          <TextField
+            id="gear"
+            label="Gear (optional)"
+            placeholder="e.g. Hasselblad 500C/M · 80mm · Portra 400"
+            value={gear}
+            onChange={(e) => setGear(e.target.value)}
+            inputProps={{ 'aria-label': 'Gear (optional)' }}
+            InputLabelProps={{ htmlFor: 'gear' }}
+            helperText="For film or manual setups — camera, lens, film. Digital EXIF is captured automatically."
           />
 
           <Button

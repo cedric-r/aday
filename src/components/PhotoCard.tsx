@@ -10,6 +10,7 @@ import type { Photo } from '@/schemas/photo.schema';
 
 interface Props {
   photo: Photo;
+  onOpen?: (photo: Photo) => void;
 }
 
 const CameraPlaceholder = () => (
@@ -36,7 +37,19 @@ const CameraPlaceholder = () => (
   </Box>
 );
 
-export const PhotoCard = ({ photo }: Props) => {
+/** Build a compact "Canon EOS 5D · 50mm · f/1.8 · 1/125s · ISO 400" line. */
+export const exifLine = (photo: Photo): string | null => {
+  const parts: string[] = [];
+  const camera = [photo.exif_make, photo.exif_model].filter(Boolean).join(' ').trim();
+  if (camera) parts.push(camera);
+  if (photo.exif_focal) parts.push(photo.exif_focal);
+  if (photo.exif_aperture) parts.push(photo.exif_aperture);
+  if (photo.exif_shutter) parts.push(photo.exif_shutter);
+  if (photo.exif_iso) parts.push(`ISO ${photo.exif_iso}`);
+  return parts.length > 0 ? parts.join(' · ') : null;
+};
+
+export const PhotoCard = ({ photo, onOpen }: Props) => {
   const [imgError, setImgError] = useState(false);
   const { username, name, substack_url, filename, description, posted_at } = photo;
 
@@ -44,6 +57,10 @@ export const PhotoCard = ({ photo }: Props) => {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(posted_at));
+
+  const gearNote = photo.gear?.trim() ? photo.gear.trim() : null;
+  const exif = exifLine(photo);
+  const gearLine = gearNote && exif ? `${gearNote} — ${exif}` : (gearNote ?? exif);
 
   return (
     <Card sx={{ mb: 3 }}>
@@ -54,8 +71,15 @@ export const PhotoCard = ({ photo }: Props) => {
           component="img"
           image={`/uploads/${username}/${filename}`}
           alt={description}
-          sx={{ maxHeight: 480, objectFit: 'contain', bgcolor: 'action.hover' }}
+          title={description}
+          sx={{
+            maxHeight: 480,
+            objectFit: 'contain',
+            bgcolor: 'action.hover',
+            cursor: onOpen ? 'zoom-in' : undefined,
+          }}
           onError={() => setImgError(true)}
+          onClick={() => { onOpen?.(photo); }}
         />
       )}
 
@@ -85,14 +109,23 @@ export const PhotoCard = ({ photo }: Props) => {
               </Box>
             )}
           </Box>
-          <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, ml: 1 }}>
-            {formattedDate}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0, ml: 1 }}>
+            {photo.highlight && <span aria-label="Highlighted photo" title="Highlighted">⭐</span>}
+            <Typography variant="caption" color="text.secondary">
+              {formattedDate}
+            </Typography>
+          </Box>
         </Box>
 
         {description && (
           <Typography variant="body2" color="text.secondary">
             {description}
+          </Typography>
+        )}
+
+        {gearLine && (
+          <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
+            {gearLine}
           </Typography>
         )}
       </CardContent>

@@ -31,7 +31,9 @@ if ($username !== null && $username !== '') {
     }
 
     $photoStmt = db()->prepare(
-        'SELECT id, filename, description, posted_at
+        'SELECT id, filename, description, posted_at,
+                highlight, gear,
+                exif_make, exif_model, exif_focal, exif_aperture, exif_shutter, exif_iso
          FROM photos
          WHERE user_id = :user_id
          ORDER BY posted_at DESC, id DESC'

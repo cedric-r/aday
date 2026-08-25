@@ -310,7 +310,7 @@ Token = `hash_hmac('sha256', userId, APP_SECRET)`.
 
 ### GET /api/admin/submissions.php
 
-All photo submissions, newest first.
+All photo submissions, newest first. Each row includes `highlight` (0/1).
 
 **Response — 200 OK**
 ```json
@@ -321,12 +321,35 @@ All photo submissions, newest first.
     "name": "Alice Smith",
     "filename": "abc123.jpg",
     "description": "Morning light",
-    "posted_at": "2026-08-24 09:00:00"
+    "posted_at": "2026-08-24 09:00:00",
+    "highlight": 0
   }
 ]
 ```
 
 Image URL: `/uploads/{username}/{filename}`
+
+---
+
+### POST /api/admin/submissions.php
+
+Set the home-page highlight flag for a photo.
+
+**Request body**
+```json
+{ "id": 42, "highlight": true }
+```
+
+**Response — 200 OK**
+```json
+{ "message": "Highlight updated.", "id": 42, "highlight": true }
+```
+
+**Errors**
+| Code | Condition |
+|---|---|
+| 400 | Missing or invalid id/highlight |
+| 404 | Photo not found |
 
 ---
 
@@ -349,9 +372,12 @@ Delete a submission — removes DB row and file from disk.
 
 ### GET /api/admin/export.php
 
-Streams a ZIP of all photos grouped by photographer.
+Exports all photos. The default (`?format=zip`) streams a ZIP of all photos
+grouped by photographer. Pass `?format=csv` for a metadata CSV
+(`aday-metadata.csv`) or `?format=json` for a JSON array — both include
+timezone, gear, EXIF, and highlight fields.
 
-**Response — 200 OK**
+**Response — 200 OK** (zip)
 - `Content-Type: application/zip`
 - `Content-Disposition: attachment; filename="aday-all-photos.zip"`
 
@@ -388,6 +414,10 @@ Upload a photo. Multipart form data.
 |---|---|---|
 | `photo` | file | JPEG/PNG/WEBP, max 15 MB |
 | `description` | string | No max length |
+| `gear` | string | Optional gear note (camera/lens/film) for manual or film setups |
+
+EXIF (make/model/focal/aperture/shutter/ISO) is captured automatically from
+digital uploads; stored in the `exif_*` columns.
 
 **Response — 201 Created**
 ```json
@@ -424,8 +454,13 @@ Public feed with cursor pagination.
 | `before` | ISO 8601 datetime | Photos posted before this timestamp (newest-first page) |
 | `after` | ISO 8601 datetime | Photos posted after this timestamp (polling — returns newest first) |
 | `limit` | int | Default 20, max 50 |
+| `photo` | int | Return a single photo by id (lightbox deep-link) |
+| `highlight` | flag | Return only admin-highlighted photos (max 50) |
 
 No params → latest 20 photos, newest first.
+
+Each photo now also includes (nullable/0-1): `highlight`, `gear`, `exif_make`,
+`exif_model`, `exif_focal`, `exif_aperture`, `exif_shutter`, `exif_iso`.
 
 **Response — 200 OK**
 ```json
@@ -489,6 +524,29 @@ Public. Returns event date and posting window status.
   "message": "Event not yet scheduled"
 }
 ```
+
+---
+
+## Stats
+
+### GET /api/stats.php
+
+Public. Total photo count + hourly posting histogram (UTC, last 48 hours).
+
+| Auth required | No |
+|---|---|
+
+**Response — 200 OK**
+```json
+{
+  "total": 42,
+  "by_hour": [
+    { "hour": "2026-08-24 08:00", "count": 3 },
+    { "hour": "2026-08-24 09:00", "count": 7 }
+  ]
+}
+```
+> `by_hour` always has exactly 48 entries (zero-filled buckets).
 
 ---
 

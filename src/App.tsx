@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import { AuthProvider } from '@/context/AuthContext';
@@ -14,6 +14,7 @@ const IndexPage = lazy(() => import('@/pages/IndexPage').then((m) => ({ default:
 const PhotographerPage = lazy(() => import('@/pages/PhotographerPage').then((m) => ({ default: m.PhotographerPage })));
 const PostPage = lazy(() => import('@/pages/PostPage').then((m) => ({ default: m.PostPage })));
 const AdminPage = lazy(() => import('@/pages/AdminPage').then((m) => ({ default: m.AdminPage })));
+const EmbedPage = lazy(() => import('@/pages/EmbedPage').then((m) => ({ default: m.EmbedPage })));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
 
 const PageSpinner = () => (
@@ -22,11 +23,23 @@ const PageSpinner = () => (
   </Box>
 );
 
+// The embed surface is header-less so it frames cleanly from Substack etc.
+const Shell = ({ children }: { children: React.ReactNode }) => {
+  const { pathname } = useLocation();
+  return (
+    <>
+      {pathname !== '/embed' && <Header />}
+      <Box component="main" sx={{ pt: 2, px: { xs: 2, md: 4 } }}>
+        {children}
+      </Box>
+    </>
+  );
+};
+
 export const App = () => (
   <BrowserRouter>
     <AuthProvider>
-      <Header />
-      <Box component="main" sx={{ pt: 2, px: { xs: 2, md: 4 } }}>
+      <Shell>
         <Suspense fallback={<PageSpinner />}>
           <Routes>
             <Route path="/" element={<HomePage />} />
@@ -50,10 +63,11 @@ export const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route path="/embed" element={<EmbedPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
-      </Box>
+      </Shell>
     </AuthProvider>
   </BrowserRouter>
 );

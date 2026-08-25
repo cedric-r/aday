@@ -161,6 +161,38 @@ describe('PhotoFeed', () => {
     expect(screen.queryByText(/event date:/i)).not.toBeInTheDocument();
   });
 
+  it('opens the lightbox on image click and closes with Escape', async () => {
+    mockFetch.mockResolvedValueOnce(
+      feedResponse([makePhoto(1, '2026-08-24 10:00:00'), makePhoto(2, '2026-08-24 09:00:00')]),
+    );
+
+    renderFeed();
+
+    await waitFor(() => screen.getByText('Description 1'));
+
+    await userEvent.click(screen.getByAltText('Description 1'));
+    expect(screen.getByRole('dialog', { name: /photo viewer/i })).toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: /photo viewer/i })).not.toBeInTheDocument();
+  });
+
+  it('navigates to the next photo in the lightbox with the arrow key', async () => {
+    mockFetch.mockResolvedValueOnce(
+      feedResponse([makePhoto(1, '2026-08-24 10:00:00'), makePhoto(2, '2026-08-24 09:00:00')]),
+    );
+
+    renderFeed();
+    await waitFor(() => screen.getByText('Description 1'));
+
+    await userEvent.click(screen.getByAltText('Description 1'));
+    await userEvent.keyboard('{ArrowRight}');
+
+    expect(screen.getByRole('dialog', { name: /photo viewer/i })).toBeInTheDocument();
+    const nextImg = screen.getByRole('dialog').querySelector('img');
+    expect(nextImg?.getAttribute('src')).toContain('photo2.jpg');
+  });
+
   it('shows error state when initial fetch fails', async () => {
     mockFetch.mockRejectedValueOnce(new Error('network error'));
     renderFeed();
