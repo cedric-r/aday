@@ -22,7 +22,10 @@ RewriteRule ^documentyourlife\.png$ /dist/documentyourlife.png [L]
 # ---- Frame protections (clickjacking): deny everywhere except /embed ----
 # /embed is deliberately frameable (Substack etc.); everything else must not
 # render inside someone else's page. Requires mod_headers (checked at deploy).
-SetEnvIf Request_URI "^/embed(\?.*)?$" allow_embed_framing=1
+# THE_REQUEST keeps the original URI — after the SPA fallback rewrites /embed
+# to /dist/index.html, REQUEST_URI no longer matches, so SetEnvIf on
+# REQUEST_URI would wrongly DENY the embeddable page.
+SetEnvIf THE_REQUEST "^[A-Z]+ /embed([? ]|$)" allow_embed_framing=1
 Header always set X-Frame-Options "DENY" env=!allow_embed_framing
 Header always set Content-Security-Policy "frame-ancestors 'none'" env=!allow_embed_framing
 Header unset X-Frame-Options env=allow_embed_framing
