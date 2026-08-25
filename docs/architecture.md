@@ -68,7 +68,8 @@ lib/
 config/
   db.php        PDO singleton — SQLite, WAL mode; relative DB_PATH resolved against project root (Apache-safe)
   env.php       Loads .env via parse_ini_file; exposes env() helper
-  session.php   Sets cookie params (Secure, HttpOnly, SameSite=Lax)
+  session.php   Cookie params (Secure, HttpOnly, SameSite=Lax), 2h idle timeout,
+                Origin/Sec-Fetch-Site CSRF check on state-changing requests
   captcha.php   Returns array of 50 ['q','a'] question pairs
 
 migrations/
@@ -85,6 +86,8 @@ scripts/
 
 setup.php                One-time admin bootstrap page (locks after first use)
 router.php               PHP built-in server entry point — serves dist/ SPA or routes API
+embed.php                /embed SPA shell (frameable; cache-busted)
+photo-meta.php           Server-rendered og/twitter tags for /photos/:id
 ```
 
 ---
@@ -98,28 +101,34 @@ src/
   theme.ts               MUI createTheme — GitHub-inspired colour palette
 
   pages/
-    HomePage.tsx          / — live photo feed; shows event date in empty state (before the event)
+    HomePage.tsx          / — stats strip + highlights strip + live photo feed; event-date empty state
     IndexPage.tsx         /index — A–Z photographer list
     PhotographerPage.tsx  /photographers/:username — individual profile
+    PhotoPage.tsx         /photos/:id — standalone photo page (shareable, social cards)
     RegisterPage.tsx      /register — registration form + captcha
     LoginPage.tsx         /login — login form
-    PostPage.tsx          /post — photo upload form (protected)
-    AdminPage.tsx         /admin — admin dashboard (admin-protected)
+    PostPage.tsx          /post — photo upload form (protected; gear field)
+    AdminPage.tsx         /admin — admin dashboard (admin-protected, 4 tabs)
+    EmbedPage.tsx         /embed — header-less gallery for iframes (photographer + theme params)
     NotFoundPage.tsx      * — 404
 
   components/
     Header.tsx            Logo + Nav
     Nav.tsx               Menu items (auth-aware via useAuth)
-    PhotoCard.tsx         Single photo — image, name, description, timestamp
-    PhotoFeed.tsx         Polling list; initial load + incremental fetch
+    PhotoCard.tsx         Single photo — image, name, description, gear/EXIF, highlight badge
+    PhotoFeed.tsx         Polling list; cards ⇄ grid toggle; lightbox + ?photo=N deep link
+    PhotoLightbox.tsx     Full-screen viewer — prev/next, Esc, arrow keys
+    StatsStrip.tsx        "N photos so far" + 48h hourly pulse
+    HighlightsStrip.tsx   Horizontal strip of admin-highlighted photos
     PostingWindowBanner   Open/closed indicator + countdown
     ProtectedRoute.tsx    Auth guard; redirects to /login or /
     TimezoneSelect.tsx    IANA timezone picker grouped by region
     admin/
       UserTable.tsx       User list with status badges + actions
-      UserModal.tsx       Add/Edit user modal
+      UserModal.tsx       Add/Edit user modal (validated substack_url + timezone)
       EventDatePanel.tsx  Event date picker + late-submissions toggle
-      SubmissionsPanel.tsx  Submission monitor + Export All button
+      SubmissionsPanel.tsx  Submission monitor: highlight/hide toggles, delete, export (ZIP/CSV/JSON), wrap-up email
+      EmbedPanel.tsx        Embed snippet generator (photographer + theme → iframe/link)
 
   context/
     AuthContext.tsx       user state, login(), logout(), useAuth() hook
@@ -157,8 +166,8 @@ src/
    → PHP: session check → window check (event date ± late submissions) → file validation → DB insert → 201
    → React: shows success flash
 
-5. Home page polls GET /api/photos.php?after=<timestamp> every 60 s
-   → PHP: SQL query with posted_at > :after → returns new photos
+5. Home page polls GET /api/photos.php?after=<posted_at>|<id> every 60 s
+   → PHP: SQL query with composite (posted_at, id) > cursor → returns new photos
    → React: prepends to PhotoFeed state (no page reload)
 ```
 
@@ -198,10 +207,15 @@ uploads/
     {uuid}.jpg
     {uuid}.png
     {uuid}.webp
+    thumbs/
+      {uuid}.jpg      ← square 320px GD thumbnail (same basename) when generated
 
 - Filenames: bin2hex(random_bytes(16)) + extension derived from MIME type
 - MIME validated server-side via finfo_file (not extension sniffing)
-- Max size: 15 MB (enforced in FileUpload::validate + php.ini)
+- Max size: 15 MB (FileUpload::validate + php.ini); max dimensions 8000px/40MP
+  (rejected before decode — decompression-bomb defence)
+- Thumbnails generated best-effort with GD; the app falls back to the original
+  when GD is absent (lib/Thumbnails.php)
 - Served as static files — no PHP proxy
 - Directory created on first post (mkdir recursive, 0755)
 - uploads/ is gitignored; data/aday.sqlite is gitignored
@@ -213,30 +227,37 @@ uploads/
 
 ```sql
 CREATE TABLE users (
-    id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    username     TEXT UNIQUE NOT NULL,
-    name         TEXT NOT NULL,
-    substack_url TEXT,
-    email        TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    timezone     TEXT NOT NULL,
-    status       TEXT NOT NULL DEFAULT 'pending',   -- pending | validated
-    is_admin     INTEGER NOT NULL DEFAULT 0,
-    created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    username        TEXT UNIQUE NOT NULL,
+    name            TEXT NOT NULL,
+    substack_url    TEXT,
+    email           TEXT UNIQUE NOT NULL,
+    password_hash   TEXT NOT NULL,
+    timezone        TEXT NOT NULL,
+    status          TEXT NOT NULL DEFAULT 'pending',   -- pending | validated | disabled
+    is_admin        INTEGER NOT NULL DEFAULT 0,
+    validation_nonce TEXT,                             -- single-use nonce for email links (migration 006)
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE settings (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
-    -- rows: event_date, setup_complete, allow_late_submissions
+    -- rows: event_date, setup_complete, allow_late_submissions, wrapup_sent
 );
 
 CREATE TABLE photos (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id     INTEGER NOT NULL REFERENCES users(id),
-    filename    TEXT NOT NULL,
-    description TEXT NOT NULL,
-    posted_at   TEXT NOT NULL DEFAULT (datetime('now'))
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id        INTEGER NOT NULL REFERENCES users(id),
+    filename       TEXT NOT NULL,
+    description    TEXT NOT NULL,
+    posted_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    highlight      INTEGER NOT NULL DEFAULT 0,   -- admin-picked (home strip)
+    hidden         INTEGER NOT NULL DEFAULT 0,   -- unlisted from all public surfaces
+    gear           TEXT,                          -- optional gear note (film setups)
+    exif_make      TEXT, exif_model     TEXT,
+    exif_focal     TEXT, exif_aperture  TEXT,
+    exif_shutter   TEXT, exif_iso       TEXT
 );
 CREATE INDEX idx_photos_posted_at ON photos(posted_at DESC);
 CREATE INDEX idx_photos_user_id   ON photos(user_id);

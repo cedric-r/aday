@@ -10,7 +10,8 @@ aday/
 │   │   ├── settings.php
 │   │   ├── submissions.php
 │   │   ├── users.php
-│   │   └── validate.php
+│   │   ├── validate.php
+│   │   └── wrapup.php
 │   ├── captcha-question.php
 │   ├── login.php
 │   ├── logout.php
@@ -18,34 +19,44 @@ aday/
 │   ├── photographers.php
 │   ├── photos.php
 │   ├── register.php
+│   ├── stats.php
 │   └── status.php
 ├── config/                 PHP configuration
 │   ├── captcha.php         50-question pool
 │   ├── db.php              PDO singleton (WAL mode)
 │   ├── env.php             .env loader + env() helper
-│   └── session.php         Cookie flags (Secure, HttpOnly, SameSite=Lax)
+│   └── session.php         Cookie flags (Secure, HttpOnly, SameSite=Lax),
+│                           session idle timeout, Origin/Sec-Fetch-Site check
 ├── data/                   SQLite database (gitignored, must be writable)
 ├── dist/                   Built React SPA (gitignored — output of npm run build)
 ├── docs/                   This documentation
 ├── lib/                    PHP library classes
 │   ├── Auth.php
+│   ├── Exif.php
 │   ├── Exporter.php
 │   ├── FileUpload.php
 │   ├── Mailer.php
 │   ├── Response.php
 │   ├── ResponseException.php
+│   ├── Thumbnails.php
 │   ├── UploadException.php
-│   └── WindowCheck.php
+│   ├── Validate.php
+│   ├── WindowCheck.php
+│   └── WrapUp.php
 ├── logs/                   Runtime logs (gitignored; logs/mail.log)
 ├── migrations/             Schema migration scripts
 │   ├── 001_create_users.php
 │   ├── 003_create_photos.php
+│   ├── 004_add_photo_fields.php
+│   ├── 005_add_hidden.php
+│   ├── 006_add_validation_nonce.php
 │   └── run.php
 ├── public/                 Static assets copied by Vite
 │   ├── documentyourlife.png  Site logo (header + empty state)
 │   └── assets/logo.png       Small logo asset
 ├── scripts/                CLI utility scripts
-│   └── reset_admin.php
+│   ├── reset_admin.php
+│   └── send_wrapup.php
 ├── src/                    React + TypeScript source
 │   ├── App.tsx             Route definitions
 │   ├── main.tsx            Entry point (providers)
@@ -63,9 +74,11 @@ aday/
 ├── .env                    (gitignored)
 ├── .htaccess               Apache SPA routing, security, upload limits (prod)
 ├── composer.json
+├── embed.php               /embed SPA shell (cache-busted, prod + dev)
 ├── eslint.config.js
 ├── index.html              Vite HTML template
 ├── package.json
+├── photo-meta.php          Server-rendered og/twitter tags for /photos/:id
 ├── phpstan.neon
 ├── phpunit.xml
 ├── router.php              PHP built-in server router (dev only)
@@ -97,7 +110,7 @@ vendor/bin/phpunit --coverage-html coverage/php
 Test environment variables are set in `phpunit.xml`:
 - `APP_ENV=testing`
 - `DB_PATH=:memory:` (in-memory SQLite — each test suite starts fresh)
-- `APP_SECRET=test-secret-key-for-phpunit`
+- `APP_SECRET=test-secret-key-for-phpunit-0123456789abcdef` (≥ 32 bytes, matching the production fail-closed requirement)
 
 Coverage target: **85% lines and branches** for `config/`, `lib/`, `api/`.
 

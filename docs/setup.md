@@ -40,11 +40,10 @@ cp .env.example .env
 
 | Variable | Required | Description |
 |---|---|---|
-| `APP_SECRET` | **Yes** | Long random string used for HMAC validation tokens. Generate: `openssl rand -hex 32` |
+| `APP_SECRET` | **Yes** | Random string ≥ 32 bytes (`openssl rand -hex 32`), used for HMAC validation tokens. Missing/short/placeholder ⇒ validation links **fail closed** (no token minted, `/api/admin/validate.php` returns 500). Do **not** deploy with the `.env.example` placeholder. |
 | `APP_ENV` | Yes | `production` (Secure cookie) or `development` (no Secure flag for local HTTP) |
 | `DB_PATH` | Yes | SQLite file path. Relative paths resolve against the **project root** (e.g. `data/aday.sqlite` → `<project>/data/aday.sqlite`). Absolute paths also work. Default: `data/aday.sqlite`. Directory must be writable. |
 | `SMTP_FROM` | Yes | Sender address for admin notification emails |
-| `APP_SECRET` | **Required** | Random ≥ 32-byte value. Missing/short/placeholder ⇒ validation links **fail closed** (no token minted, endpoint 500s). Do **not** use the `.env.example` placeholder. |
 | `APP_URL` | Yes | Public base URL (used for absolute links in outgoing emails, e.g. the clickable validation link) |
 
 > Registration notifications are sent to the **admin users in the database**
@@ -74,6 +73,12 @@ php migrations/run.php
 This creates `data/aday.sqlite` and runs all migrations in order:
 - `001_create_users.php` — `users` + `settings` tables
 - `003_create_photos.php` — `photos` table + indexes
+- `004_add_photo_fields.php` — `highlight`, `gear`, `exif_*` columns
+- `005_add_hidden.php` — `hidden` (unlist) flag
+- `006_add_validation_nonce.php` — single-use nonce for validation links
+
+Migrations 004–006 are idempotent (they skip columns that already exist), so
+re-running `php migrations/run.php` is safe.
 
 The `data/` directory is created automatically if absent. It must be writable by the web server.
 
@@ -212,7 +217,7 @@ APP_SECRET=<openssl rand -hex 32>
 APP_ENV=production
 DB_PATH=/var/www/photoni.st/aday/data/aday.sqlite
 SMTP_FROM=noreply@aday.photoni.st
-ADMIN_EMAIL=<event-owner-email>
+APP_URL=https://aday.photoni.st
 EOF
 chmod 640 .env
 ```
@@ -262,11 +267,18 @@ The `.htaccess` in the repo root handles everything:
 1. **Upload limits** — `php_value upload_max_filesize 16M` + `post_max_size 17M`
    (defaults in `php.ini` are 2M/8M).
 2. **Security** — denies `.env`, `composer.*`, `data/`, `logs/`, `vendor/`,
-   `src/`, `tests/`, `api/data/`, etc.
-3. **API + setup.php** — reaches mod_php directly (`RewriteRule .* - [L]`).
-4. **Static aliases** — `/assets/*` → `/dist/assets/*`, `/documentyourlife.png`
+   `src/`, `tests/`, `api/data/`, stray `*.sqlite*` files, and Vite's source
+   `index.html`; `Options -Indexes`; `Cache-Control` on static assets.
+3. **Frame protection (clickjacking)** — `Content-Security-Policy:
+   frame-ancestors 'none'` on every path except `/embed`, which gets
+   `frame-ancestors *` (via `<If>` on `THE_REQUEST`, which survives the SPA
+   rewrite) so Substack and other embeds can iframe it.
+4. **API + setup.php** — reaches mod_php directly (`RewriteRule .* - [L]`).
+5. **Static aliases** — `/assets/*` → `/dist/assets/*`, `/documentyourlife.png`
    → `/dist/documentyourlife.png`.
-5. **SPA fallback** — any other path not matching a real file →
+6. **Special routes** — `/embed` → `embed.php` (same SPA shell, cache-busted),
+   `/photos/:id` → `photo-meta.php` (server-renders OpenGraph/Twitter tags).
+7. **SPA fallback** — any other path not matching a real file →
    `/dist/index.html` (with `DirectoryIndex /dist/index.html`).
 
 nginx equivalent (for reference) if the site ever moves:
@@ -297,6 +309,10 @@ server {
    `/router.php`) → routes to the PHP file.
 2. If the URL matches a file in `dist/` (JS, CSS, images) → serves it directly.
 3. Otherwise → serves `dist/index.html` (SPA fallback for React Router).
+
+It also rejects path traversal (`..` in the path) and only serves files that
+`realpath()` confirms live under `dist/` — the dev server must never expose
+`.env` or other project files.
 
 ```bash
 php -S localhost:8765 router.php

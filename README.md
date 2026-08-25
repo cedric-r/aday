@@ -12,6 +12,19 @@ A dynamic photo publishing system for a single 1-day event — photographers acr
 | Build | Vite 8, npm |
 | Email | PHPMailer (localhost:25 open relay) |
 
+## Features
+
+- **Live event feed** — auto-refreshes every minute; cursor pagination, **Lightbox** with keyboard nav and **shareable deep links** (`/?photo=N`)
+- **Per-photo pages** (`/photos/:id`) with **OpenGraph/Twitter cards** for social sharing
+- **Grid ⇄ Cards view** toggle with generated **thumbnails** (GD, square 320px)
+- **Photos "so far" stats strip + 48 h posting pulse** (`/api/stats.php`)
+- **Admin highlights** (⭐ strip), **hide/unlist** (👁), metadata **CSV/JSON/ZIP export**
+- **EXIF capture** (make/model/focal/aperture/shutter/ISO) + optional **gear** field for film shooters
+- **Substack embed** — header-less `/embed` page, per-photographer filter, dark theme, admin-copy iframe snippet
+- **Registration validation emails** to DB admin accounts (single-use HMAC links, 72h expiry)
+- **Post-event wrap-up email** to participants (admin button or cron `scripts/send_wrapup.php`)
+- **Security hardening** — prepared statements everywhere, http(s)-only URL validation, upload dimension caps, session fixation/CSRF defences, clickjacking CSP (embedding allowed only on `/embed`), fail-closed validation tokens
+
 ## Prerequisites
 
 - PHP 8.3+ with extensions: `pdo_sqlite`, `zip`, `fileinfo`, `mbstring`
@@ -32,7 +45,8 @@ npm install
 
 # 4. Configure environment
 cp .env.example .env
-# Edit .env — set APP_SECRET, SMTP_FROM, ADMIN_EMAIL.
+# Edit .env — set APP_SECRET (≥ 32 random bytes; never run it in production
+# with the placeholder — validation links fail closed), SMTP_FROM, APP_URL.
 # For local HTTP, set APP_ENV=development (disables the Secure cookie flag).
 
 # 5. Run database migrations

@@ -70,8 +70,9 @@ Returns current session user. **Always returns 200** — never 401 (avoids brows
 |---|---|
 | 400 | Missing username or password |
 | 401 | Wrong credentials |
-| 403 | Account pending approval |
+| 403 | Invalid credentials or account pending approval (generic — does not reveal which) |
 | 405 | Non-POST request |
+| 429 | Too many failed attempts (session throttled after 5) |
 
 ---
 
@@ -128,6 +129,7 @@ Validation rules:
 - `username`: 3–30 chars, `[a-zA-Z0-9_]`, unique
 - `password`: min 8 chars
 - `timezone`: must be in `DateTimeZone::listIdentifiers()`
+- `substack_url`: optional; must be a valid `http(s)` URL (other schemes rejected)
 - `captcha_answer`: trimmed + lowercased comparison
 
 **Response — 201 Created**
@@ -313,7 +315,8 @@ missing/short/placeholder.
 
 ### GET /api/admin/submissions.php
 
-All photo submissions, newest first. Each row includes `highlight` (0/1).
+All photo submissions, newest first. Each row includes `highlight` (0/1),
+`hidden` (0/1), and `thumb_url` (nullable).
 
 **Response — 200 OK**
 ```json
@@ -325,12 +328,14 @@ All photo submissions, newest first. Each row includes `highlight` (0/1).
     "filename": "abc123.jpg",
     "description": "Morning light",
     "posted_at": "2026-08-24 09:00:00",
-    "highlight": 0
+    "highlight": 0,
+    "hidden": 0,
+    "thumb_url": "/uploads/alice/thumbs/abc123.jpg"
   }
 ]
 ```
 
-Image URL: `/uploads/{username}/{filename}`
+Image URL: `/uploads/{username}/{filename}` (thumbnail when `/thumbs/`)
 
 ---
 
@@ -353,6 +358,9 @@ or
 { "message": "Photo updated.", "id": 42, "highlight": true, "hidden": false }
 ```
 
+> Values must be JSON booleans (`true`/`false`) or `1`/`0`. The string
+> `"false"` is **rejected** (400) rather than coerced to `true`.
+
 **Errors**
 | Code | Condition |
 |---|---|
@@ -363,7 +371,7 @@ or
 
 ### DELETE /api/admin/submissions.php?id=N
 
-Delete a submission — removes DB row and file from disk.
+Delete a submission — removes the DB row, and the original + thumbnail files from disk.
 
 **Response — 200 OK**
 ```json
@@ -375,6 +383,31 @@ Delete a submission — removes DB row and file from disk.
 |---|---|
 | 400 | Missing or invalid id |
 | 404 | Photo not found |
+
+---
+
+### POST /api/admin/wrapup.php
+
+Send the post-event wrap-up email **once** to every validated participant.
+Guarded by a `wrapup_sent` settings row claimed atomically (double-send race
+between the admin button and a cron job is impossible); if the mail relay
+fails, the claim is released so the next attempt can retry.
+`scripts/send_wrapup.php` is the cron-friendly CLI equivalent (exits 1 on
+send failure).
+
+| Auth required | Yes — admin |
+|---|---|
+
+**Response — 200 OK**
+```json
+{
+  "message": "Wrap-up email sent to 12 participant(s).",
+  "status": "sent",
+  "count": 12
+}
+```
+
+`status` is one of `sent` | `already_sent` | `no_recipients` | `failed`.
 
 ---
 
@@ -420,12 +453,14 @@ Upload a photo. Multipart form data.
 **Request fields**
 | Field | Type | Notes |
 |---|---|---|
-| `photo` | file | JPEG/PNG/WEBP, max 15 MB |
-| `description` | string | No max length |
-| `gear` | string | Optional gear note (camera/lens/film) for manual or film setups |
+| `photo` | file | JPEG/PNG/WEBP, max 15 MB, max 8000 px / 40 MP |
+| `description` | string | Optional, max 2000 characters |
+| `gear` | string | Optional gear note (camera/lens/film), max 200, for manual/film setups |
 
 EXIF (make/model/focal/aperture/shutter/ISO) is captured automatically from
-digital uploads; stored in the `exif_*` columns.
+digital uploads; stored in the `exif_*` columns. A square 320px thumbnail is
+generated best-effort (GD) and served from `/uploads/{username}/thumbs/` when
+available.
 
 **Response — 201 Created**
 ```json
@@ -445,6 +480,7 @@ Image served at: `/uploads/{username}/{filename}`
 | 403 | Account not validated |
 | 403 | Posting window closed — not the event date (or after it, when late submissions are disabled) |
 | 422 | Wrong MIME type or file exceeds 15 MB |
+| 422 | Image dimensions exceed 8000 px / 40 MP (rejected before decode) |
 | 503 | Event date not configured |
 
 ---
@@ -469,9 +505,9 @@ Public feed with cursor pagination.
 No params → latest 20 photos, newest first. Hidden (unlisted) photos are never
 included in any public response.
 
-Each photo now also includes (nullable/0-1): `highlight`, `gear`, `exif_make`,
-`exif_model`, `exif_focal`, `exif_aperture`, `exif_shutter`, `exif_iso`,
-`thumb_url` (thumbnail path when available, else `null`).
+Each photo includes (nullable/0-1 where applicable): `highlight`, `gear`,
+`exif_make`, `exif_model`, `exif_focal`, `exif_aperture`, `exif_shutter`,
+`exif_iso`, `thumb_url` (thumbnail path when available, else `null`).
 
 **Response — 200 OK**
 ```json
@@ -483,8 +519,17 @@ Each photo now also includes (nullable/0-1): `highlight`, `gear`, `exif_make`,
       "name": "Alice Smith",
       "substack_url": "https://alice.substack.com",
       "filename": "abc123.jpg",
+      "thumb_url": "/uploads/alice/thumbs/abc123.jpg",
       "description": "Morning light in the garden",
-      "posted_at": "2026-08-24 09:14:22"
+      "posted_at": "2026-08-24 09:14:22",
+      "highlight": 0,
+      "gear": "Canon EOS 5D · 50mm",
+      "exif_make": "Canon",
+      "exif_model": "EOS 5D",
+      "exif_focal": "50mm",
+      "exif_aperture": "f/1.8",
+      "exif_shutter": "1/125s",
+      "exif_iso": "400"
     }
   ],
   "next_cursor": "2026-08-24 08:30:00|42"
@@ -493,7 +538,7 @@ Each photo now also includes (nullable/0-1): `highlight`, `gear`, `exif_make`,
 
 > `next_cursor` = `postedAt|id` of the oldest photo in the response (composite — no same-second drops), or `null`.  
 > Use `?before=<next_cursor>` for the next page.  
-> Use `?after=<latest_seen_posted_at>` for incremental polling. Ignore `next_cursor` in polling mode.
+> Use `?after=<latest_seen_posted_at>|<latest_seen_id>` for incremental polling. Ignore `next_cursor` in polling mode.
 
 ---
 
@@ -601,12 +646,19 @@ Single photographer profile + all their photos.
     {
       "id": 42,
       "filename": "abc123.jpg",
+      "thumb_url": "/uploads/alice/thumbs/abc123.jpg",
       "description": "Morning light in the garden",
-      "posted_at": "2026-08-24 09:14:22"
+      "posted_at": "2026-08-24 09:14:22",
+      "highlight": 0,
+      "gear": null,
+      "exif_make": null
     }
   ]
 }
 ```
+
+> Photo objects carry the same fields as `GET /api/photos.php` (full EXIF
+> block + `thumb_url`). Hidden photos are never included.
 
 **Errors**
 | Code | Condition |
