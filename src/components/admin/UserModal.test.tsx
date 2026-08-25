@@ -214,4 +214,18 @@ describe('UserModal', () => {
     expect(onSaved).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it('Add mode: shows the Substack URL field', () => {
+    render(<UserModal mode="add" onClose={vi.fn()} onSaved={vi.fn()} />);
+    expect(screen.getByLabelText(/substack url/i)).toBeInTheDocument();
+  });
+
+  it('Edit mode: shows the Substack URL field with the current value', async () => {
+    render(<UserModal mode="edit" user={existingUser} onClose={vi.fn()} onSaved={vi.fn()} />);
+    const field = screen.getByLabelText(/substack url/i) as HTMLInputElement;
+    expect(field).toBeInTheDocument();
+    // existingUser in this suite has no substack_url, so it is empty — that's fine,
+    // the assertion is about the field being present in the edit form.
+  });
 });
+

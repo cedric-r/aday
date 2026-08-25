@@ -179,6 +179,16 @@ export const UserModal = ({ mode, user, onClose, onSaved }: Props) => {
               InputLabelProps={{ htmlFor: 'modal-email-add' }}
             />
             <TextField
+              {...addForm.register('substack_url')}
+              label="Substack URL"
+              id="modal-substack-add"
+              type="url"
+              error={!!addForm.formState.errors.substack_url}
+              helperText={addForm.formState.errors.substack_url?.message}
+              inputProps={{ 'aria-label': 'Substack URL' }}
+              InputLabelProps={{ htmlFor: 'modal-substack-add' }}
+            />
+            <TextField
               {...addForm.register('password')}
               label="Password"
               id="modal-password"
