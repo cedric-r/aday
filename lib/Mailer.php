@@ -57,7 +57,9 @@ class Mailer
         $id    = (int) $user['id'];
         $token = hash_hmac('sha256', (string) $id, (string) env('APP_SECRET', ''));
 
-        $link = "/api/admin/validate.php?id={$id}&token={$token}";
+        // Absolute URL — email clients need a full link to make it clickable.
+        $base = rtrim((string) env('APP_URL', 'https://aday.photoni.st'), '/');
+        $link = "{$base}/api/admin/validate.php?id={$id}&token={$token}";
 
         $body = implode("\n", [
             "A new user has registered and requires validation.",
@@ -73,7 +75,7 @@ class Mailer
         try {
             $mail = $this->buildMailer();
             $mail->addAddress($this->adminEmail);
-            $mail->Subject = "[A Day] Validate user: {$user['username']}";
+            $mail->Subject = "[Document Your Life] Validate user: {$user['username']}";
             $mail->Body    = $body;
             $mail->send();
         } catch (PHPMailerException $e) {

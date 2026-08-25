@@ -45,6 +45,7 @@ cp .env.example .env
 | `DB_PATH` | Yes | SQLite file path. Relative paths resolve against the **project root** (e.g. `data/aday.sqlite` → `<project>/data/aday.sqlite`). Absolute paths also work. Default: `data/aday.sqlite`. Directory must be writable. |
 | `SMTP_FROM` | Yes | Sender address for admin notification emails |
 | `ADMIN_EMAIL` | Yes | Destination for registration validation emails |
+| `APP_URL` | Yes | Public base URL (used for absolute links in outgoing emails, e.g. the clickable validation link) |
 
 > **Special characters in `.env` values**: If any value contains `;`, `#`, `=`, `{`, or `}`, wrap it in double quotes:  
 > `APP_SECRET="my-secret#value;here"`
