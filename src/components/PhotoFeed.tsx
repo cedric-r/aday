@@ -96,9 +96,17 @@ export const PhotoFeed = () => {
 
   if (photos.length === 0) {
     return (
-      <Typography color="text.secondary">
-        No photos yet. Check back soon!
-      </Typography>
+      <Box display="flex" flexDirection="column" alignItems="center" textAlign="center" gap={3} mt={2}>
+        <Typography color="text.secondary">
+          No photos yet. Check back soon!
+        </Typography>
+        <Box
+          component="img"
+          src="/documentyourlife.png"
+          alt="Document Your Life"
+          sx={{ width: 260, height: 260, objectFit: 'contain', opacity: 0.9 }}
+        />
+      </Box>
     );
   }
 

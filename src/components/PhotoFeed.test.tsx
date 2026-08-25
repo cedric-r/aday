@@ -105,6 +105,18 @@ describe('PhotoFeed', () => {
     expect(screen.queryByRole('button', { name: /load more/i })).not.toBeInTheDocument();
   });
 
+  it('shows empty state with large logo when no photos', async () => {
+    mockFetch.mockResolvedValueOnce(feedResponse([]));
+
+    renderFeed();
+
+    await waitFor(() =>
+      expect(screen.getByText('No photos yet. Check back soon!')).toBeInTheDocument(),
+    );
+    const logo = screen.getByRole('img', { name: /document your life/i });
+    expect(logo).toHaveAttribute('src', '/documentyourlife.png');
+  });
+
   it('shows error state when initial fetch fails', async () => {
     mockFetch.mockRejectedValueOnce(new Error('network error'));
     renderFeed();
