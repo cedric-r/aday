@@ -44,8 +44,11 @@ cp .env.example .env
 | `APP_ENV` | Yes | `production` (Secure cookie) or `development` (no Secure flag for local HTTP) |
 | `DB_PATH` | Yes | SQLite file path. Relative paths resolve against the **project root** (e.g. `data/aday.sqlite` → `<project>/data/aday.sqlite`). Absolute paths also work. Default: `data/aday.sqlite`. Directory must be writable. |
 | `SMTP_FROM` | Yes | Sender address for admin notification emails |
-| `ADMIN_EMAIL` | Yes | Destination for registration validation emails |
 | `APP_URL` | Yes | Public base URL (used for absolute links in outgoing emails, e.g. the clickable validation link) |
+
+> Registration notifications are sent to the **admin users in the database**
+> (`users.is_admin = 1`), not to a hard-coded env address. There is no
+> `ADMIN_EMAIL` variable.
 
 > **Special characters in `.env` values**: If any value contains `;`, `#`, `=`, `{`, or `}`, wrap it in double quotes:  
 > `APP_SECRET="my-secret#value;here"`
