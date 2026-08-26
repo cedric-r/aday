@@ -44,7 +44,8 @@ if ($method === 'POST') {
     $name        = $get('name');
     $substackUrl = $get('substack_url');
     $bio         = trim((string) $get('bio'));
-    $bio         = $bio === '' ? null : mb_substr($bio, 0, 500);
+    $bio         = $bio === '' ? null : mb_substr(trim(strip_tags($bio)), 0, 500);
+    $bio         = $bio === '' ? null : $bio;
     $email       = $get('email');
     $password    = $get('password');
     $timezone    = $get('timezone') ?: 'UTC';

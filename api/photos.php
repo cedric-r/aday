@@ -258,8 +258,10 @@ if ($method === 'GET') {
     }
 
     // Decorate with thumbnail URL (best-effort; null when no thumbs dir yet).
+    // u.timezone is query-side plumbing for the hour filter — never expose it.
     $uploadsBase = dirname(__DIR__) . '/uploads';
     $photos = array_map(static function (array $p) use ($uploadsBase): array {
+        unset($p['timezone']);
         $p['thumb_url'] = is_file($uploadsBase . '/' . $p['username'] . '/thumbs/' . $p['filename'])
             ? "/uploads/{$p['username']}/thumbs/{$p['filename']}"
             : null;

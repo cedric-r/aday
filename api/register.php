@@ -45,7 +45,10 @@ $username    = $get('username');
 $name        = $get('name');
 $substackUrl = $get('substack_url');
 $bio         = trim((string) $get('bio'));
-$bio         = $bio === '' ? null : mb_substr($bio, 0, 500);
+// Strip markup (defense-in-depth — React escapes on render, but the API is
+// public) and cap length.
+$bio         = $bio === '' ? null : mb_substr(trim(strip_tags($bio)), 0, 500);
+$bio         = $bio === '' ? null : $bio;
 $email       = $get('email');
 $password    = $get('password');
 $timezone    = $get('timezone');
