@@ -218,18 +218,14 @@ final class WaveThreeTest extends TestCase
         $this->assertSame(201, $res['status']);
         $id = (int) db()->query("SELECT id FROM users WHERE username='withbio'")->fetchColumn();
 
-        // Clear it via PUT.
-        $ctx = stream_context_create(['http' => [
-            'method'  => 'PUT',
-            'header'  => "Content-Type: application/json\r\nCookie: " . session_name() . '=' . session_id(),
-            'content' => json_encode(['bio' => '']),
-            'ignore_errors' => true,
-        ]]);
-        ob_start();
-        file_get_contents('testing://' === '' ? '' : 'php://stdin'); // noop to keep helper import happy
-        ob_end_clean();
-        $put = TestHelper::request($this->usersFile, 'PUT', ['bio' => ''], ['id' => $id]);
+        // PUT with >500 chars truncates (same as POST — consistent).
+        $put = TestHelper::request($this->usersFile, 'PUT', ['bio' => str_repeat('y', 700)], ['id' => $id]);
         $this->assertSame(200, $put['status']);
+        $this->assertSame(500, mb_strlen((string) db()->query("SELECT bio FROM users WHERE id = {$id}")->fetchColumn()));
+
+        // Clear it via PUT.
+        $clear = TestHelper::request($this->usersFile, 'PUT', ['bio' => ''], ['id' => $id]);
+        $this->assertSame(200, $clear['status']);
 
         $row = db()->query("SELECT bio FROM users WHERE id = {$id}")->fetch();
         $this->assertNull($row['bio']);

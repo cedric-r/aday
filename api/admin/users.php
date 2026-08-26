@@ -112,9 +112,14 @@ if ($method === 'PUT') {
     $password    = isset($data['password']) ? (string) $data['password'] : null;
     $substackRaw = array_key_exists('substack_url', $data) ? $data['substack_url'] : null;
     // bio: present in payload (even as empty string) → update; absent → skip.
-    $bioRaw = array_key_exists('bio', $data) ? trim((string) $data['bio']) : null;
-    if ($bioRaw !== null && mb_strlen($bioRaw) > 500) {
-        respond(422, ['errors' => ['bio' => 'Bio must be 500 characters or fewer.']]);
+    // Same normalisation as register/POST: strip markup, cap at 500,
+    // whitespace-only becomes null (consistency — no divergent 422 path).
+    $bioRaw = array_key_exists('bio', $data) ? trim(strip_tags((string) $data['bio'])) : null;
+    if ($bioRaw !== null) {
+        $bioRaw = mb_substr($bioRaw, 0, 500);
+        if ($bioRaw === '') {
+            $bioRaw = '';
+        }
     }
 
     // Block self-demotion of admin flag.

@@ -151,6 +151,11 @@ export const PhotoFeed = ({ eventDate = null, photographer = null }: { eventDate
       if (isPollingRef.current) return;
       isPollingRef.current = true;
       try {
+        // In hour-filter mode the poll would need a tz-aware "new matches"
+        // query the API doesn't offer — skip polling instead of mixing
+        // other-hour photos into the filtered feed. The banner's "clear"
+        // button returns to the normal live feed.
+        if (hour !== null) return;
         const since = latestTimestampRef.current;
         const sinceId = latestIdRef.current;
         const pollQuery = photographer
@@ -172,7 +177,7 @@ export const PhotoFeed = ({ eventDate = null, photographer = null }: { eventDate
 
     const timer = setInterval(() => { void poll(); }, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [fetchPhotos, photographer]);
+  }, [fetchPhotos, photographer, hour]);
 
     const handleLoadMore = async () => {
       if (!nextCursor) return;
@@ -195,10 +200,12 @@ export const PhotoFeed = ({ eventDate = null, photographer = null }: { eventDate
         if (data.photos.length > 0) {
           const photo = data.photos[0];
           // Show it in a one-photo lightbox (deep-linkable like the rest).
+          // NOTE: deliberately do NOT touch latestTimestampRef/latestIdRef —
+          // the random photo can be older than the feed's newest, and moving
+          // the poll cursor backwards would re-fetch existing photos as
+          // "new" duplicates on the next tick.
           setLightbox({ photos: [photo], index: 0 });
           setSearchParams({ photo: String(photo.id) }, { replace: true });
-          latestTimestampRef.current = photo.posted_at;
-          latestIdRef.current = photo.id;
         }
       } catch {
         // ignore — button is best-effort

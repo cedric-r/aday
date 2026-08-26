@@ -88,17 +88,19 @@ if ($included === 0) {
 $zip->addFromString('descriptions.txt', $descriptions);
 $zip->close();
 
-// Stream then clean up (temp file + lock) — the lock is released after the
-// full response is written; PHP guarantees these run even if the client
-// disconnects mid-download.
+// Stream then clean up (temp file + lock) — try/finally so an interrupted
+// readfile() can't leak either. The lock is released after the response.
 header('Content-Type: application/zip');
 header('Content-Disposition: attachment; filename="my-documentyourlife.zip"');
 header('Content-Length: ' . (string) filesize($tempPath));
-if (env('APP_ENV') === 'testing') {
-    echo "ZIP:" . basename($tempPath);
-} else {
-    readfile($tempPath);
+try {
+    if (env('APP_ENV') === 'testing') {
+        echo "ZIP:" . basename($tempPath);
+    } else {
+        readfile($tempPath);
+    }
+} finally {
+    @unlink($tempPath);
+    fclose($lockH);
+    @unlink($lockFile);
 }
-@unlink($tempPath);
-fclose($lockH);
-@unlink($lockFile);

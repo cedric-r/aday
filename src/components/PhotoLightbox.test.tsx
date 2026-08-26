@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { PhotoLightbox } from './PhotoLightbox';
 import type { Photo } from '@/schemas/photo.schema';
@@ -26,6 +26,10 @@ const renderBox = (photos: Photo[], index: number, nav: Nav) =>
 describe('PhotoLightbox slideshow', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('shows play button only for multiple photos', () => {
