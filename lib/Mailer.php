@@ -240,6 +240,45 @@ class Mailer
     }
 
     /**
+     * Send a one-off broadcast email (e.g. an event reminder) to an arbitrary
+     * list of recipients. Sends individually so one bad address doesn't sink
+     * the whole batch, and reports per-recipient success/failure counts.
+     *
+     * @param  list<string> $recipients
+     * @return array{sent: int, failed: int}
+     */
+    public function sendBroadcast(array $recipients, string $subject, string $body): array
+    {
+        $sent   = 0;
+        $failed = 0;
+
+        foreach ($recipients as $email) {
+            $email = trim((string) $email);
+            if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $failed++;
+                continue;
+            }
+            try {
+                $mail = $this->buildMailer();
+                $mail->addAddress($email);
+                $mail->Subject = $subject;
+                $mail->Body    = $body;
+                $mail->send();
+                $sent++;
+            } catch (PHPMailerException $e) {
+                $failed++;
+                error_log(
+                    date('Y-m-d H:i:s') . ' [Mailer] Broadcast failed for ' . self::maskLog($email) . ': ' . self::maskLog($e->getMessage()) . "\n",
+                    3,
+                    dirname(__DIR__) . '/logs/mail.log'
+                );
+            }
+        }
+
+        return ['sent' => $sent, 'failed' => $failed];
+    }
+
+    /**
      * Build and configure a PHPMailer instance.
      */
     protected function buildMailer(): PHPMailer

@@ -671,6 +671,44 @@ All validated photographers, A–Z (case-insensitive by name).
 
 ---
 
+### GET /api/admin/email.php?scope=validated|all
+
+Recipient-count preview (no email is sent). `scope=validated` (default) counts
+validated participants; `scope=all` counts every registered user. Admins are
+always excluded; duplicate/empty emails are dropped.
+
+| Auth required | Yes — admin |
+|---|---|
+
+**Response — 200 OK**
+```json
+{ "scope": "validated", "recipients": 12 }
+```
+
+### POST /api/admin/email.php
+
+Send a one-off broadcast email (e.g. an event reminder) to the selected
+audience. Body (JSON or form-encoded):
+
+| Field | Required | Constraints |
+|---|---|---|
+| `subject` | yes | 1–200 chars, single line (no newlines — header-injection guard) |
+| `body` | yes | 1–5000 chars |
+| `scope` | no | `validated` (default) or `all` |
+
+| Auth required | Yes — admin |
+|---|---|
+
+**Response — 200 OK**
+```json
+{ "status": "sent", "recipients": 12, "sent": 12, "failed": 0 }
+```
+`status` is `sent` (with `sent`/`failed` counts) or `no_recipients`.
+
+**Errors** — 403 (non-admin), 405 (wrong method), 422 (validation).
+
+---
+
 ### GET /api/photographers.php?username=alice
 
 Single photographer profile + all their photos. The response includes the

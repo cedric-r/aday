@@ -170,6 +170,24 @@ formula character (=, +, -, @) are prefixed with `'` to prevent
 
 ---
 
+## Email Tab
+
+Click the **Email** tab to send a one-off broadcast message (e.g. a reminder
+that the event date is approaching) to registered users.
+
+1. **Recipients** — pick **Validated participants** (default) or **All
+   registered users**. A live counter shows how many people will be emailed
+   as you switch.
+2. **Subject** — required, max 200 chars, single line.
+3. **Message** — required, max 5000 chars.
+4. **Send email** — a confirmation dialog shows the recipient count before
+   anything is sent.
+
+The result reports how many emails were delivered (`sent`) and how many failed
+(e.g. an unreachable SMTP relay). Admins are never recipients.
+
+---
+
 ## Embed Tab
 
 Click the **Embed** tab to generate embeddable snippets for any site that

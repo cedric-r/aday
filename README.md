@@ -26,6 +26,7 @@ A dynamic photo publishing system for a single 1-day event — photographers acr
 - **Substack / embed** — header-less `/embed` page (per-photographer filter, dark theme, admin-copy iframe snippet for iframe-friendly sites). On Substack itself (no raw iframes allowed) use the **card-style link previews** from the per-photo pages (`og:image`/`og:title`/`og:description`)
 - **Registration validation emails** to DB admin accounts (single-use HMAC links, 72h expiry)
 - **Post-event wrap-up email** to participants (admin button or cron `scripts/send_wrapup.php`)
+- **Admin broadcast email** — one-off messages (event reminders) to validated participants or all registered users, recipient-count preview + confirm-before-send (`/api/admin/email.php`)
 - **Security hardening** — prepared statements everywhere, http(s)-only URL validation, upload dimension caps, session fixation/CSRF defences, clickjacking CSP (embedding allowed only on `/embed`), fail-closed validation tokens
 
 ## Prerequisites

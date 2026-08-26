@@ -50,5 +50,24 @@ export const AdminValidateResponseSchema = z.object({
   username: z.string(),
 });
 
+export const AdminEmailPreviewSchema = z.object({
+  scope: z.enum(['validated', 'all']),
+  recipients: z.number().int(),
+});
+
+export const AdminEmailSendSchema = z.object({
+  status: z.enum(['sent', 'no_recipients']),
+  recipients: z.number().int(),
+  sent: z.number().int(),
+  failed: z.number().int(),
+});
+
+export const AdminEmailFormSchema = z.object({
+  scope: z.enum(['validated', 'all']),
+  subject: z.string().min(1, 'Subject is required').max(200, 'Max 200 characters'),
+  body: z.string().min(1, 'Message is required').max(5000, 'Max 5000 characters'),
+});
+
 export type AdminUser = z.infer<typeof AdminUserSchema>;
 export type Submission = z.infer<typeof SubmissionSchema>;
+export type AdminEmailForm = z.infer<typeof AdminEmailFormSchema>;

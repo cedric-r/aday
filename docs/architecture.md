@@ -50,6 +50,7 @@ api/
     settings.php         GET/POST — event date + late-submissions toggle
     submissions.php      GET/POST/DELETE — submissions + highlight/hidden toggles (strict booleans)
     wrapup.php           POST — send the post-event wrap-up email once
+    email.php            GET/POST — recipient-count preview + one-off broadcast email
     export.php           GET  — ZIP (photos) or CSV/JSON metadata export
 
 lib/
@@ -59,6 +60,7 @@ lib/
   Exif.php               EXIF extraction (make, model, focal, aperture, shutter, ISO)
   Thumbnails.php         GD square thumbnail generator (best-effort, 320px, dims capped)
   WrapUp.php             One-shot post-event participant email (guarded by settings row)
+  Mailer.php             PHPMailer wrapper — validation links, wrap-up, broadcast (sendBroadcast)
   Validate.php           Shared http/https URL validator (substack_url)
   WindowCheck.php        Timezone-aware posting-window check (event-date-only, or open-ended for late submitters)
   Exporter.php           ZipArchive builder — per-photographer subfolders
@@ -128,7 +130,8 @@ src/
     admin/
       UserTable.tsx       User list with status badges + actions
       UserModal.tsx       Add/Edit user modal (validated substack_url + timezone)
-      EventDatePanel.tsx  Event date picker + late-submissions toggle
+      EventDatePanel.tsx    Event date + late-submissions toggle
+      EmailPanel.tsx        Broadcast email composer (scope, preview count, confirm)  
       SubmissionsPanel.tsx  Submission monitor: highlight/hide toggles, delete, export (ZIP/CSV/JSON), wrap-up email
       EmbedPanel.tsx        Embed snippet generator (photographer + theme → iframe/link)
 
