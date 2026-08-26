@@ -44,6 +44,20 @@ if ($user === false) {
 
 // A NULL nonce means the link was already used (or never minted).
 if ($user['validation_nonce'] === null || $user['validation_nonce'] === '') {
+    // Single-use link already consumed. If the user is already validated the
+    // link did its job (e.g. a double-click on the email link, or the link
+    // clicked after the user was validated another way) — treat it as success
+    // instead of a confusing "invalid" error. Only an actually-pending user
+    // with no nonce is a genuinely stale/invalid link.
+    if ($user['status'] === 'validated') {
+        if (env('APP_ENV') === 'testing') {
+            echo json_encode(['message' => 'User already validated.', 'username' => $user['username']]);
+        } else {
+            header('Location: /admin/?validated=1');
+            http_response_code(302);
+        }
+        return;
+    }
     respond(401, 'Invalid validation link.');
 }
 

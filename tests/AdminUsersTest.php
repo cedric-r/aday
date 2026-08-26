@@ -162,6 +162,35 @@ final class AdminUsersTest extends TestCase
         $this->assertNull($updated['validation_nonce']); // single-use: nonce consumed
     }
 
+    public function test_reused_link_on_already_validated_user_is_graceful(): void
+    {
+        $user = TestHelper::createUser([
+            'username' => 'reclick',
+            'email'    => 'reclick@example.com',
+            'status'   => 'pending',
+        ]);
+
+        $nonce   = bin2hex(random_bytes(16));
+        db()->prepare('UPDATE users SET validation_nonce = :nonce WHERE id = :id')
+            ->execute([':nonce' => $nonce, ':id' => $user['id']]);
+
+        $expires = time() + 3600;
+        $token   = Mailer::buildToken((int) $user['id'], 'reclick@example.com', $nonce, $expires, (string) env('APP_SECRET'));
+        $params  = ['id' => $user['id'], 'expires' => $expires, 'token' => $token];
+
+        // First click: validates and consumes the nonce.
+        $first = TestHelper::request($this->validateFile, 'GET', [], $params);
+        $this->assertSame(200, $first['status']);
+
+        // Second click of the SAME link: nonce is now gone, user is already
+        // validated. Must be graceful (200), not a confusing 401.
+        $second = TestHelper::request($this->validateFile, 'GET', [], $params);
+        $this->assertSame(200, $second['status']);
+
+        $status = db()->query("SELECT status FROM users WHERE id = {$user['id']}")->fetchColumn();
+        $this->assertSame('validated', $status);
+    }
+
     public function test_invalid_hmac_returns_401(): void
     {
         $user = TestHelper::createUser([

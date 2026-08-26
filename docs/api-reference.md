@@ -263,11 +263,15 @@ missing/short/placeholder.
 **Response — 302 redirect** to `/admin/?validated=1`  
 (200 JSON in test/API mode)
 
+If the user is **already validated** (e.g. the single-use link was consumed by
+a first click or an email link-scanner prefetch), the endpoint is *idempotent*:
+it returns the same success redirect instead of an error.
+
 **Errors**
 | Code | Condition |
 |---|---|
 | 400 | Missing id or token |
-| 401 | Invalid HMAC |
+| 401 | Invalid HMAC, expired link, or user still `pending` with no/consumed nonce |
 
 ---
 
