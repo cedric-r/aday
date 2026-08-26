@@ -171,8 +171,8 @@ formula character (=, +, -, @) are prefixed with `'` to prevent
 
 ## Embed Tab
 
-Click the **Embed** tab to generate embeddable snippets for Substack or any
-other site.
+Click the **Embed** tab to generate embeddable snippets for any site that
+allows arbitrary iframes (Notion, self-hosted blogs, Webflow, etc.):
 
 1. **Photographer dropdown** — pick a single photographer's gallery
    (or "Everyone" for the whole feed).
@@ -186,8 +186,15 @@ The iframe points at `/embed` (header-less, auto-refreshing). `/embed` is the
 `Content-Security-Policy: frame-ancestors 'none'`, so the site can't be
 clickjack-embedded elsewhere.
 
-> **Substack note:** pasted iframes render live on the Substack post page;
-> email subscribers see a static placeholder, so also include the plain link.
+> **Substack caveat — Substack does NOT allow raw HTML/iframes in posts**
+> (its editor only embeds whitelisted providers), so the iframe snippet will
+> not work inside a Substack post. What **does** work on Substack is a
+> **card-style link preview**: paste a plain URL and Substack fetches its
+> OpenGraph metadata and shows a rich card. For that to show a photo, link to
+> the photo's own page **`https://aday.photoni.st/photos/<id>`** (which carries
+> `og:image`/`og:title`/`og:description`). `/embed` itself has no og tags, so
+> pasting it on Substack appears as a bare link — use it as a normal
+> hyperlink, not a card.
 
 ---
 
