@@ -13,6 +13,19 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 // Total photo count (hidden/unlisted photos never count toward public stats).
 $total = (int) db()->query('SELECT COUNT(*) FROM photos WHERE hidden = 0')->fetchColumn();
 
+// Photographer + timezone breadth — how many validated photographers have
+// posted, and across how many distinct IANA timezones ("follow the sun" scale).
+$photographers = (int) db()->query(
+    "SELECT COUNT(DISTINCT p.user_id)
+     FROM photos p JOIN users u ON u.id = p.user_id
+     WHERE p.hidden = 0 AND u.status = 'validated'"
+)->fetchColumn();
+$timezones = (int) db()->query(
+    "SELECT COUNT(DISTINCT u.timezone)
+     FROM photos p JOIN users u ON u.id = p.user_id
+     WHERE p.hidden = 0 AND u.status = 'validated'"
+)->fetchColumn();
+
 // Hourly posting histogram — UTC hour buckets for the last 48 hours, so the
 // "pulse" of the event (across timezones) is visible. Buckets with no photos
 // are returned as 0 so the client can render a continuous axis.
@@ -38,4 +51,9 @@ for ($i = 47; $i >= 0; $i--) {
     ];
 }
 
-echo json_encode(['total' => $total, 'by_hour' => $byHour]);
+echo json_encode([
+    'total'        => $total,
+    'photographers' => $photographers,
+    'timezones'    => $timezones,
+    'by_hour'      => $byHour,
+]);

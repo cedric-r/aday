@@ -18,6 +18,7 @@ export const PhotoSchema = z.object({
   exif_shutter: z.string().nullable().optional(),
   exif_iso: z.string().nullable().optional(),
   thumb_url: z.string().nullable().optional(),
+  local_time: z.string().optional(),
 });
 
 export const PhotoFeedResponseSchema = z.object({
@@ -40,6 +41,8 @@ export const StatusResponseSchema = z.object({
 
 export const StatsResponseSchema = z.object({
   total: z.number().int(),
+  photographers: z.number().int().optional(),
+  timezones: z.number().int().optional(),
   by_hour: z.array(
     z.object({
       hour: z.string(),

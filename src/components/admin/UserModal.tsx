@@ -24,6 +24,7 @@ const AddSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
   substack_url: z.string().url('Must be a valid http(s) URL').or(z.literal('')).optional(),
+  bio: z.string().max(500, 'Max 500 characters').optional(),
   password: z.string().min(8),
   timezone: z.string().min(1),
   is_admin: z.boolean(),
@@ -33,6 +34,7 @@ const EditSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
   substack_url: z.string().url('Must be a valid http(s) URL').or(z.literal('')).optional(),
+  bio: z.string().max(500, 'Max 500 characters').optional(),
   password: z.string().min(8).optional().or(z.literal('')),
   timezone: z.string().min(1),
   status: z.enum(['pending', 'validated']),
@@ -72,6 +74,7 @@ export const UserModal = ({ mode, user, onClose, onSaved }: Props) => {
       name: user?.name ?? '',
       email: user?.email ?? '',
       substack_url: user?.substack_url ?? '',
+      bio: user?.bio ?? '',
       password: '',
       timezone: user?.timezone ?? defaultTz,
       status: user?.status ?? 'pending',
@@ -85,6 +88,7 @@ export const UserModal = ({ mode, user, onClose, onSaved }: Props) => {
         name: user.name,
         email: user.email,
         substack_url: user.substack_url ?? '',
+        bio: user.bio ?? '',
         password: '',
         timezone: user.timezone,
         status: user.status,
@@ -266,6 +270,18 @@ export const UserModal = ({ mode, user, onClose, onSaved }: Props) => {
               helperText={editForm.formState.errors.substack_url?.message}
               inputProps={{ 'aria-label': 'Substack URL' }}
               InputLabelProps={{ htmlFor: 'modal-substack-edit' }}
+            />
+            <TextField
+              {...editForm.register('bio')}
+              label="Bio"
+              id="modal-bio-edit"
+              multiline
+              minRows={2}
+              maxRows={5}
+              error={!!editForm.formState.errors.bio}
+              helperText={editForm.formState.errors.bio?.message ?? 'Shown on the photographer profile (max 500 chars).'}
+              inputProps={{ 'aria-label': 'Bio' }}
+              InputLabelProps={{ htmlFor: 'modal-bio-edit' }}
             />
             <TextField
               {...editForm.register('password')}

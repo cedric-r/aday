@@ -180,6 +180,19 @@ export const RegisterPage = () => {
         />
 
         <TextField
+          {...register('bio')}
+          label="Short bio (optional)"
+          id="bio"
+          multiline
+          minRows={2}
+          maxRows={5}
+          helperText={errors.bio?.message ?? 'Shown on your photographer profile (max 500 characters).'}
+          error={!!errors.bio}
+          inputProps={{ 'aria-label': 'Bio' }}
+          InputLabelProps={{ htmlFor: 'bio' }}
+        />
+
+        <TextField
           {...register('password')}
           label="Password"
           id="password"

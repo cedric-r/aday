@@ -4,6 +4,8 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import IconButton from '@mui/material/IconButton';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { PhotoFeedResponseSchema } from '@/schemas/photo.schema';
 import type { Photo } from '@/schemas/photo.schema';
@@ -41,10 +43,15 @@ export const PhotoFeed = ({ eventDate = null, photographer = null }: { eventDate
       return 'cards';
     }
   });
+  const [hour, setHour] = useState<number | null>(null);
+  const [isRandomLoading, setIsRandomLoading] = useState(false);
 
-  const feedQuery = photographer
-    ? `/api/photos.php?photographer=${encodeURIComponent(photographer)}&limit=20`
-    : '/api/photos.php?limit=20';
+  const feedQuery =
+    hour !== null
+      ? `/api/photos.php?hour=${hour}&limit=50`
+      : photographer
+        ? `/api/photos.php?photographer=${encodeURIComponent(photographer)}&limit=20`
+        : '/api/photos.php?limit=20';
 
   const latestTimestampRef = useRef<string | null>(null);
   const latestIdRef = useRef<number>(0);
@@ -167,19 +174,42 @@ export const PhotoFeed = ({ eventDate = null, photographer = null }: { eventDate
     return () => clearInterval(timer);
   }, [fetchPhotos, photographer]);
 
-  const handleLoadMore = async () => {
-    if (!nextCursor) return;
-    setIsLoadingMore(true);
-    try {
-      const data = await fetchPhotos(
-        `/api/photos.php?before=${encodeURIComponent(nextCursor)}&limit=20`,
-      );
-      setPhotos((prev) => [...prev, ...data.photos]);
-      setNextCursor(data.next_cursor);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
+    const handleLoadMore = async () => {
+      if (!nextCursor) return;
+      setIsLoadingMore(true);
+      try {
+        const data = await fetchPhotos(`${feedQuery}${feedQuery.includes('?') ? '&' : '?'}before=${encodeURIComponent(nextCursor)}`);
+        setPhotos((prev) => [...prev, ...data.photos]);
+        setNextCursor(data.next_cursor);
+      } catch {
+        setError('Failed to load more photos.');
+      } finally {
+        setIsLoadingMore(false);
+      }
+    };
+
+    const handleRandom = async () => {
+      setIsRandomLoading(true);
+      try {
+        const data = await fetchPhotos('/api/photos.php?random=1');
+        if (data.photos.length > 0) {
+          const photo = data.photos[0];
+          // Show it in a one-photo lightbox (deep-linkable like the rest).
+          setLightbox({ photos: [photo], index: 0 });
+          setSearchParams({ photo: String(photo.id) }, { replace: true });
+          latestTimestampRef.current = photo.posted_at;
+          latestIdRef.current = photo.id;
+        }
+      } catch {
+        // ignore — button is best-effort
+      } finally {
+        setIsRandomLoading(false);
+      }
+    };
+
+    const changeHour = (next: number | null) => {
+      setHour(next);
+    };
 
   if (isLoadingInitial) {
     return (
@@ -216,32 +246,74 @@ export const PhotoFeed = ({ eventDate = null, photographer = null }: { eventDate
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5, mb: 1 }}>
-        <IconButton
-          aria-label="Cards view"
-          title="Cards view"
+      {hour !== null && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            Local hour <strong>{String(hour).padStart(2, '0')}:00</strong> across every photographer's day
+            (ordered east → west) ·{' '}
+            <Button size="small" onClick={() => changeHour(null)} sx={{ p: 0, minWidth: 0, textTransform: 'none' }}>
+              clear
+            </Button>
+          </Typography>
+        </Box>
+      )}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+        <TextField
+          select
           size="small"
-          color={view === 'cards' ? 'primary' : 'default'}
-          onClick={() => changeView('cards')}
+          label="Follow the sun — local hour"
+          value={hour === null ? '' : String(hour)}
+          onChange={(e) => {
+            const v = e.target.value;
+            changeHour(v === '' ? null : Number(v));
+          }}
+          sx={{ minWidth: 240 }}
+          SelectProps={{ displayEmpty: true }}
+          data-testid="hour-select"
         >
-          <Box component="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" sx={{ width: 20, height: 20, fill: 'currentColor' }} aria-hidden="true">
-            <path d="M3 5h18v4H3V5zm0 10h18v4H3v-4zm0-5h8v4H3v-4zm11 0h7v4h-7v-4z" />
-          </Box>
-        </IconButton>
-        <IconButton
-          aria-label="Grid view"
-          title="Grid view"
-          size="small"
-          color={view === 'grid' ? 'primary' : 'default'}
-          onClick={() => changeView('grid')}
-        >
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2px', width: 20, height: 20 }} aria-hidden="true">
-            <Box sx={{ bgcolor: 'currentColor', borderRadius: '2px' }} />
-            <Box sx={{ bgcolor: 'currentColor', borderRadius: '2px' }} />
-            <Box sx={{ bgcolor: 'currentColor', borderRadius: '2px' }} />
-            <Box sx={{ bgcolor: 'currentColor', borderRadius: '2px' }} />
-          </Box>
-        </IconButton>
+          <MenuItem value="">All hours</MenuItem>
+          {Array.from({ length: 24 }, (_, h) => (
+            <MenuItem key={h} value={String(h)}>
+              {String(h).padStart(2, '0')}:00 local
+            </MenuItem>
+          ))}
+        </TextField>
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <IconButton
+            aria-label="Cards view"
+            title="Cards view"
+            size="small"
+            color={view === 'cards' ? 'primary' : 'default'}
+            onClick={() => changeView('cards')}
+          >
+            <Box component="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" sx={{ width: 20, height: 20, fill: 'currentColor' }} aria-hidden="true">
+              <path d="M3 5h18v4H3V5zm0 10h18v4H3v-4zm0-5h8v4H3v-4zm11 0h7v4h-7v-4z" />
+            </Box>
+          </IconButton>
+          <IconButton
+            aria-label="Grid view"
+            title="Grid view"
+            size="small"
+            color={view === 'grid' ? 'primary' : 'default'}
+            onClick={() => changeView('grid')}
+          >
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2px', width: 20, height: 20 }} aria-hidden="true">
+              <Box sx={{ bgcolor: 'currentColor', borderRadius: '2px' }} />
+              <Box sx={{ bgcolor: 'currentColor', borderRadius: '2px' }} />
+              <Box sx={{ bgcolor: 'currentColor', borderRadius: '2px' }} />
+              <Box sx={{ bgcolor: 'currentColor', borderRadius: '2px' }} />
+            </Box>
+          </IconButton>
+          <IconButton
+            aria-label="Surprise me"
+            title="Show a random photo"
+            size="small"
+            disabled={isRandomLoading}
+            onClick={() => { void handleRandom(); }}
+          >
+            🎲
+          </IconButton>
+        </Box>
       </Box>
 
       {view === 'grid' ? (

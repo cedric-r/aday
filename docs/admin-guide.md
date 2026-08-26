@@ -34,6 +34,7 @@ The **Users** tab shows all registered users in a table:
 | Name | Display name shown on the site |
 | Email | Contact email |
 | Substack URL | The user's public Substack page (clickable; `—` when not set) |
+| Bio | Optional short blurb shown on their public profile (editable in Edit) |
 | Timezone | User's IANA timezone (affects posting window) |
 | Status | `pending` (awaiting approval), `validated`, or `disabled` |
 | Is Admin | Whether the user has admin privileges |

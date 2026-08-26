@@ -2,8 +2,17 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { PhotographerPage } from './PhotographerPage';
+import * as AuthModule from '@/context/AuthContext';
 
 const mockFetch = vi.fn<typeof fetch>();
+
+// PhotographerPage uses useAuth() (own-profile download button).
+vi.spyOn(AuthModule, 'useAuth').mockReturnValue({
+  user: null,
+  isLoading: false,
+  login: vi.fn(),
+  logout: vi.fn(),
+});
 
 const profile = {
   username: 'alice',

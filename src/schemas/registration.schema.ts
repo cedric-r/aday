@@ -9,6 +9,7 @@ export const RegisterFormSchema = z.object({
   username: z.string().min(3, 'Min 3 characters').max(30, 'Max 30 characters').regex(/^[a-zA-Z0-9_]+$/, 'Alphanumeric and underscores only'),
   name: z.string().min(1, 'Name is required'),
   substack_url: z.string().url('Must be a valid URL').or(z.literal('')).optional(),
+  bio: z.string().max(500, 'Max 500 characters').optional(),
   password: z.string().min(8, 'Min 8 characters'),
   email: z.string().email('Must be a valid email'),
   timezone: z.string().min(1, 'Timezone is required'),

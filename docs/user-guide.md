@@ -7,6 +7,7 @@
    - **Username** — 3–30 characters, letters, numbers, and underscores only.
    - **Display name** — your name as shown on the site.
    - **Substack URL** — your Substack page (displayed publicly on your photographer profile). Must be a valid `http(s)` link.
+   - **Short bio** — optional, max 500 characters, shown on your photographer profile.
    - **Email** — used for admin contact; not publicly displayed.
    - **Password** — minimum 8 characters.
    - **Timezone** — select your local IANA timezone from the dropdown (pre-filled to your browser timezone).
@@ -68,8 +69,13 @@ You can post photos during the event day in **your local timezone** — from 00:
 The **home page** (`/`) shows all photos from all photographers in reverse chronological order (newest first).
 
 - The feed **auto-refreshes every minute** — new photos appear at the top without reloading the page.
-- Above the feed you'll see a **stats strip** ("N photos so far" + a 48-hour posting pulse)
+- Above the feed you'll see a **stats strip** ("N photos so far · N photographers · N time zones" + a 48-hour posting pulse)
   and an **admin-curated Highlights strip** (⭐ photos) when there are any.
+- Use the **Follow the sun — local hour** dropdown to see what every photographer
+  was shooting at, say, 07:00 *in their own timezone* — Tokyo's morning first,
+  the US west coast last. Each card shows the photographer's local time. Choose
+  **All hours** to return to the normal feed.
+- Click the 🎲 button to open a random photo from the archive.
 - Use the **Cards ⇄ Grid** toggle (top-right of the feed) to switch between the
   vertical card list and a contact-sheet grid of thumbnails. Your choice is remembered.
 - Scroll down to see older photos. Click **Load more** at the bottom to continue.
@@ -87,6 +93,7 @@ Click any photo to open the **lightbox** — a full-screen viewer with:
 
 - Larger image + all photo details
 - **← / →** arrow keys (or on-screen buttons) to move between photos
+- **Space** or the ▶ button to start/pause a **slideshow** that advances every 5 seconds (wraps around) — handy for projecting at a wrap-up meetup
 - **Esc** (or ✕) to close
 
 ### Sharing a photo
@@ -137,6 +144,11 @@ URL: `/photographers/{username}`
 
 Shows a single photographer's:
 - Name and Substack link
+- Optional bio
 - All their photos in reverse chronological order (newest first)
+
+**Downloading your own photos** — when you view your *own* profile while logged
+in, a **⬇ Download my photos (ZIP)** button appears above the feed. It gives you
+a ZIP of all your visible photos plus a `descriptions.txt` manifest.
 
 If a photographer has not yet posted any photos, the page shows "No photos yet."

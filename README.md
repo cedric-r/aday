@@ -14,12 +14,15 @@ A dynamic photo publishing system for a single 1-day event — photographers acr
 
 ## Features
 
-- **Live event feed** — auto-refreshes every minute; cursor pagination, **Lightbox** with keyboard nav and **shareable deep links** (`/?photo=N`)
+- **Live event feed** — auto-refreshes every minute; cursor pagination, **Lightbox** with keyboard nav, **slideshow** (space ▶/❚❚) and **shareable deep links** (`/?photo=N`)
+- **"Follow the sun" hour filter** — pick a local hour (00–23) and see what every photographer was doing at that moment in *their* timezone, ordered east → west
+- **Random photo** 🎲 — one-click "surprise me" from the public archive
 - **Per-photo pages** (`/photos/:id`) with **OpenGraph/Twitter cards** for social sharing
 - **Grid ⇄ Cards view** toggle with generated **thumbnails** (GD, square 320px)
-- **Photos "so far" stats strip + 48 h posting pulse** (`/api/stats.php`)
+- **Photos "so far" stats strip + 48 h posting pulse + photographer/timezone breadth** (`/api/stats.php`)
 - **Admin highlights** (⭐ strip), **hide/unlist** (👁), metadata **CSV/JSON/ZIP export**
-- **EXIF capture** (make/model/focal/aperture/shutter/ISO) + optional **gear** field for film shooters
+- **EXIF capture** (make/model/focal/aperture/shutter/ISO), optional **gear** field for film shooters, and an optional **photographer bio**
+- **Self-service download** — participants grab a ZIP of their own photos from their profile page (`/api/my-export.php`)
 - **Substack / embed** — header-less `/embed` page (per-photographer filter, dark theme, admin-copy iframe snippet for iframe-friendly sites). On Substack itself (no raw iframes allowed) use the **card-style link previews** from the per-photo pages (`og:image`/`og:title`/`og:description`)
 - **Registration validation emails** to DB admin accounts (single-use HMAC links, 72h expiry)
 - **Post-event wrap-up email** to participants (admin button or cron `scripts/send_wrapup.php`)

@@ -111,12 +111,16 @@ if ($method === 'GET') {
     $single = isset($_GET['photo']) ? (int) $_GET['photo'] : 0;
     $highlights = isset($_GET['highlight']) && $_GET['highlight'] !== '0';
     $photographer = isset($_GET['photographer']) ? trim((string) $_GET['photographer']) : '';
+    $random = isset($_GET['random']) && $_GET['random'] === '1';
+    $hourRaw = isset($_GET['hour']) ? trim((string) $_GET['hour']) : '';
+    $hour = ($hourRaw !== '' && preg_match('/^\d{1,2}$/', $hourRaw) && (int) $hourRaw <= 23) ? (int) $hourRaw : null;
 
     $baseSelect = '
             SELECT p.id, u.username, u.name, u.substack_url,
                    p.filename, p.description, p.posted_at,
                    p.highlight, p.gear,
-                   p.exif_make, p.exif_model, p.exif_focal, p.exif_aperture, p.exif_shutter, p.exif_iso
+                   p.exif_make, p.exif_model, p.exif_focal, p.exif_aperture, p.exif_shutter, p.exif_iso,
+                   u.timezone
             FROM photos p
             JOIN users u ON u.id = p.user_id
         ';
@@ -162,6 +166,46 @@ if ($method === 'GET') {
             );
             $stmt->execute();
             $photos = $stmt->fetchAll();
+        } elseif ($random) {
+            // One random public photo ("Surprise me").
+            $stmt = db()->prepare(
+                $baseSelect . 'WHERE 1=1 ' . $visible . 'ORDER BY RANDOM() LIMIT 1'
+            );
+            $stmt->execute();
+            $photos = $stmt->fetchAll();
+        } elseif ($hour !== null) {
+            // "Follow the sun": photos taken during local hour H in *each*
+            // photographer's own timezone, ordered eastmost-first so the feed
+            // reads as the sun's progression across the planet. Hour matching
+            // happens in PHP because SQLite has no IANA tz support; capped at
+            // 1000 recent photos for memory safety.
+            $stmt = db()->prepare(
+                $baseSelect . 'WHERE 1=1 ' . $visible .
+                'ORDER BY p.posted_at DESC, p.id DESC LIMIT 1000'
+            );
+            $stmt->execute();
+            $utc = new DateTimeZone('UTC');
+            $matched = [];
+            foreach ($stmt->fetchAll() as $row) {
+                try {
+                    $tz = new DateTimeZone((string) ($row['timezone'] ?: 'UTC'));
+                } catch (Exception) {
+                    $tz = $utc;
+                }
+                $dt = new DateTime((string) $row['posted_at'], $utc);
+                $dt->setTimezone($tz);
+                if ((int) $dt->format('G') === $hour) {
+                    $row['_offset']    = (int) $dt->format('Z'); // seconds east of UTC
+                    $row['local_time'] = $dt->format('H:i');
+                    $matched[] = $row;
+                }
+            }
+            usort($matched, static fn (array $a, array $b): int =>
+                [$b['_offset'], $b['posted_at'], $b['id']] <=> [$a['_offset'], $a['posted_at'], $a['id']]
+            );
+            $photos = array_slice($matched, 0, $limit);
+            foreach ($photos as &$p) { unset($p['_offset'], $p['timezone']); }
+            unset($p);
         } elseif ($after !== null) {
         // Polling variant: photos NEWER than the cursor, ascending, then reverse.
         $stmt = db()->prepare(

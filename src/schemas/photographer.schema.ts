@@ -11,6 +11,7 @@ export const PhotographerSummarySchema = z.object({
   username: z.string(),
   name: z.string(),
   substack_url: z.string().nullable(),
+  bio: z.string().nullable().optional(),
   photo_count: z.number().int(),
 });
 
@@ -20,6 +21,7 @@ export const PhotographerDetailSchema = z.object({
   username: z.string(),
   name: z.string(),
   substack_url: z.string().nullable(),
+  bio: z.string().nullable().optional(),
   photos: z.array(PhotoSummarySchema),
 });
 

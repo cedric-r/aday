@@ -170,9 +170,19 @@ final class TestHelper
         $data = array_merge($defaults, $overrides);
 
         db()->prepare(
-            'INSERT INTO users (username, name, substack_url, email, password_hash, timezone, status, is_admin)
-             VALUES (:username, :name, :substack_url, :email, :password_hash, :timezone, :status, :is_admin)'
-        )->execute($data);
+            'INSERT INTO users (username, name, substack_url, bio, email, password_hash, timezone, status, is_admin)
+             VALUES (:username, :name, :substack_url, :bio, :email, :password_hash, :timezone, :status, :is_admin)'
+        )->execute([
+            ':username'      => $data['username'],
+            ':name'          => $data['name'],
+            ':substack_url'  => $data['substack_url'],
+            ':bio'           => $data['bio'] ?? null,
+            ':email'         => $data['email'],
+            ':password_hash' => $data['password_hash'],
+            ':timezone'      => $data['timezone'],
+            ':status'        => $data['status'],
+            ':is_admin'      => $data['is_admin'],
+        ]);
 
         $data['id'] = (int) db()->lastInsertId();
         return $data;

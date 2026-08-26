@@ -1,18 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import { PhotographerDetailSchema } from '@/schemas/photographer.schema';
 import type { PhotographerDetail } from '@/schemas/photographer.schema';
 import { PhotoCard } from '@/components/PhotoCard';
+import { useAuth } from '@/context/AuthContext';
 import { NotFoundPage } from './NotFoundPage';
 
 export const PhotographerPage = () => {
   const { username } = useParams<{ username: string }>();
+  const { user } = useAuth();
   const [profile, setProfile] = useState<PhotographerDetail | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const isOwnProfile = user !== null && user.username === username;
 
   useEffect(() => {
     if (!username) return;
@@ -61,6 +65,24 @@ export const PhotographerPage = () => {
         >
           Substack
         </Typography>
+      )}
+
+      {profile.bio && (
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 3, whiteSpace: 'pre-line' }}>
+          {profile.bio}
+        </Typography>
+      )}
+
+      {isOwnProfile && profile.photos.length > 0 && (
+        <Button
+          variant="outlined"
+          size="small"
+          component="a"
+          href="/api/my-export.php"
+          sx={{ mb: 3 }}
+        >
+          ⬇ Download my photos (ZIP)
+        </Button>
       )}
 
       {profile.photos.length === 0 ? (

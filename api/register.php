@@ -44,6 +44,8 @@ $errors = [];
 $username    = $get('username');
 $name        = $get('name');
 $substackUrl = $get('substack_url');
+$bio         = trim((string) $get('bio'));
+$bio         = $bio === '' ? null : mb_substr($bio, 0, 500);
 $email       = $get('email');
 $password    = $get('password');
 $timezone    = $get('timezone');
@@ -109,13 +111,14 @@ if ($stmt->fetch() !== false) {
 $passwordHash = password_hash($password, PASSWORD_BCRYPT);
 
 $stmt = db()->prepare(
-    'INSERT INTO users (username, name, substack_url, email, password_hash, timezone, status)
-     VALUES (:username, :name, :substack_url, :email, :password_hash, :timezone, :status)'
+    'INSERT INTO users (username, name, substack_url, bio, email, password_hash, timezone, status)
+     VALUES (:username, :name, :substack_url, :bio, :email, :password_hash, :timezone, :status)'
 );
 $stmt->execute([
     ':username'      => $username,
     ':name'          => $name,
     ':substack_url'  => $substackUrl !== '' ? $substackUrl : null,
+    ':bio'           => $bio,
     ':email'         => $email,
     ':password_hash' => $passwordHash,
     ':timezone'      => $timezone,

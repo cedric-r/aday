@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
@@ -11,6 +11,8 @@ interface Props {
   onClose: () => void;
   onNavigate: (index: number) => void;
 }
+
+const SLIDESHOW_INTERVAL_MS = 5000;
 
 const gearCaption = (photo: Photo): string | null => {
   const note = photo.gear?.trim() ? photo.gear.trim() : null;
@@ -56,16 +58,32 @@ const ArrowButton = ({ direction, onClick }: { direction: 'prev' | 'next'; onCli
 
 export const PhotoLightbox = ({ photos, initialIndex, onClose, onNavigate }: Props) => {
   const photo = photos[initialIndex];
+  const [playing, setPlaying] = useState(false);
+  const navRef = useRef(onNavigate);
+  navRef.current = onNavigate;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
       if (e.key === 'ArrowLeft' && initialIndex > 0) onNavigate(initialIndex - 1);
       if (e.key === 'ArrowRight' && initialIndex < photos.length - 1) onNavigate(initialIndex + 1);
+      if (e.key === ' ') {
+        e.preventDefault();
+        setPlaying((p) => !p);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose, onNavigate, initialIndex, photos.length]);
+
+  // Slideshow: advance every SLIDESHOW_INTERVAL_MS while playing; wraps at end.
+  useEffect(() => {
+    if (!playing || photos.length < 2) return;
+    const timer = setInterval(() => {
+      navRef.current(initialIndex >= photos.length - 1 ? 0 : initialIndex + 1);
+    }, SLIDESHOW_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [playing, initialIndex, photos.length]);
 
   if (!photo) return null;
 
@@ -97,6 +115,20 @@ export const PhotoLightbox = ({ photos, initialIndex, onClose, onNavigate }: Pro
       >
         ✕
       </IconButton>
+
+      {photos.length >= 2 && (
+        <IconButton
+          onClick={(e) => {
+            e.stopPropagation();
+            setPlaying((p) => !p);
+          }}
+          aria-label={playing ? 'Pause slideshow' : 'Play slideshow'}
+          title={playing ? 'Pause slideshow (space)' : 'Play slideshow (space)'}
+          sx={{ position: 'absolute', top: 12, right: 56, zIndex: 2, color: 'white', bgcolor: 'rgba(0,0,0,0.35)' }}
+        >
+          {playing ? '❚❚' : '▶'}
+        </IconButton>
+      )}
 
       {hasPrev && <ArrowButton direction="prev" onClick={() => onNavigate(initialIndex - 1)} />}
       {hasNext && <ArrowButton direction="next" onClick={() => onNavigate(initialIndex + 1)} />}

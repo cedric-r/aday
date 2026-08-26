@@ -411,6 +411,37 @@ send failure).
 
 ---
 
+### GET /api/my-export.php
+
+Self-service download: streams a ZIP of **the session user's own** visible
+photos (originals at the archive root plus a `descriptions.txt` manifest with
+descriptions and timestamps).
+
+| Auth required | Yes — validated user |
+|---|---|
+
+**Response — 200 OK**
+- `Content-Type: application/zip`
+- `Content-Disposition: attachment; filename="my-documentyourlife.zip"`
+
+**Errors**
+| Code | Condition |
+|---|---|
+| 401 | Not authenticated |
+| 403 | Account not validated |
+| 404 | No photos on disk for this user |
+| 503 | ZipArchive extension not available |
+
+---
+
+## Registration extras
+
+`POST /api/register.php` also accepts an optional `bio` (≤ 500 chars, shown
+on the public photographer profile). Admins can set/clear `bio` through
+`POST`/`PUT /api/admin/users.php`.
+
+---
+
 ### GET /api/admin/export.php
 
 Exports all photos. The default (`?format=zip`) streams a ZIP of all photos
@@ -495,15 +526,18 @@ Public feed with cursor pagination.
 **Query parameters**
 | Param | Type | Description |
 |---|---|---|
-| `before` | cursor | Paginate older: `posted_at|id` composite (legacy plain timestamp still works) |
-| `after` | cursor | Poll newer: `posted_at|id` composite (newest-first response) |
+| `before` | cursor | Paginate older: `posted_at\|id` composite (legacy plain timestamp still works) |
+| `after` | cursor | Poll newer: `posted_at\|id` composite (newest-first response) |
 | `limit` | int | Default 20, max 50 |
 | `photo` | int | Return a single photo by id (lightbox deep-link) |
 | `highlight` | flag | Return only admin-highlighted photos (max 50) |
 | `photographer` | username | Return only that (validated) photographer's photos — used by per-photographer embeds |
+| `hour` | 0–23 | "Follow the sun": photos whose **local** time (in the photographer's own timezone) falls in hour H; ordered east → west; each photo carries a `local_time` field (`HH:MM`) |
+| `random` | flag | One random public photo ("surprise me") |
 
 No params → latest 20 photos, newest first. Hidden (unlisted) photos are never
-included in any public response.
+included in any public response. The hour filter scans the most recent 1000
+photos and returns at most `limit` matches.
 
 Each photo includes (nullable/0-1 where applicable): `highlight`, `gear`,
 `exif_make`, `exif_model`, `exif_focal`, `exif_aperture`, `exif_shutter`,
@@ -596,13 +630,17 @@ Public. Total photo count + hourly posting histogram (UTC, last 48 hours).
 ```json
 {
   "total": 42,
+  "photographers": 34,
+  "timezones": 19,
   "by_hour": [
     { "hour": "2026-08-24 08:00", "count": 3 },
     { "hour": "2026-08-24 09:00", "count": 7 }
   ]
 }
 ```
-> `by_hour` always has exactly 48 entries (zero-filled buckets).
+> `by_hour` always has exactly 48 entries (zero-filled buckets). `total`
+> counts all non-hidden photos; `photographers`/`timezones` count validated
+> photographers with at least one visible photo and their distinct timezones.
 
 ---
 
@@ -631,7 +669,8 @@ All validated photographers, A–Z (case-insensitive by name).
 
 ### GET /api/photographers.php?username=alice
 
-Single photographer profile + all their photos.
+Single photographer profile + all their photos. The response includes the
+photographer's optional `bio`.
 
 | Auth required | No |
 |---|---|

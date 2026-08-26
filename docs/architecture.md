@@ -41,7 +41,8 @@ api/
   me.php                 GET  — current session user (always 200)
   photos.php             GET/POST — feed (cursor, single, highlights, photographer) + upload (gear + EXIF + thumb)
   photographers.php      GET  — index list or single profile
-  stats.php              GET  — total count + 48h hourly histogram
+  stats.php              GET  — total count + photographer/timezone breadth + 48h hourly histogram
+  my-export.php          GET  — participant's own ZIP download (validated session)
   status.php             GET  — event window status
   admin/
     users.php            GET/POST/PUT/DELETE — user management
@@ -78,6 +79,7 @@ migrations/
   004_add_photo_fields.php  highlight + gear + EXIF columns
   005_add_hidden.php     hidden (unlist) flag
   006_add_validation_nonce.php  single-use nonce for admin validation links
+  007_add_bio.php        users.bio (photographer blurb)
   run.php                CLI runner — executes all migrations in order
 
 scripts/
@@ -105,7 +107,7 @@ src/
     IndexPage.tsx         /index — A–Z photographer list
     PhotographerPage.tsx  /photographers/:username — individual profile
     PhotoPage.tsx         /photos/:id — standalone photo page (shareable, social cards)
-    RegisterPage.tsx      /register — registration form + captcha
+    RegisterPage.tsx      /register — registration form + captcha + optional bio
     LoginPage.tsx         /login — login form
     PostPage.tsx          /post — photo upload form (protected; gear field)
     AdminPage.tsx         /admin — admin dashboard (admin-protected, 4 tabs)

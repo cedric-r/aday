@@ -30,7 +30,7 @@ $get = static fn (string $key): string => trim((string) ($data[$key] ?? ''));
 
 if ($method === 'GET') {
     $stmt = db()->query(
-        'SELECT id, username, name, substack_url, email, timezone, status, is_admin, created_at
+        'SELECT id, username, name, substack_url, bio, email, timezone, status, is_admin, created_at
          FROM users ORDER BY name ASC'
     );
     echo json_encode($stmt->fetchAll());
@@ -43,6 +43,8 @@ if ($method === 'POST') {
     $username    = $get('username');
     $name        = $get('name');
     $substackUrl = $get('substack_url');
+    $bio         = trim((string) $get('bio'));
+    $bio         = $bio === '' ? null : mb_substr($bio, 0, 500);
     $email       = $get('email');
     $password    = $get('password');
     $timezone    = $get('timezone') ?: 'UTC';
@@ -74,12 +76,13 @@ if ($method === 'POST') {
     }
 
     db()->prepare(
-        'INSERT INTO users (username, name, substack_url, email, password_hash, timezone, status, is_admin)
-         VALUES (:username, :name, :substack_url, :email, :password_hash, :timezone, :status, :is_admin)'
+        'INSERT INTO users (username, name, substack_url, bio, email, password_hash, timezone, status, is_admin)
+         VALUES (:username, :name, :substack_url, :bio, :email, :password_hash, :timezone, :status, :is_admin)'
     )->execute([
         ':username'      => $username,
         ':name'          => $name,
         ':substack_url'  => $substackUrl !== '' ? $substackUrl : null,
+        ':bio'           => $bio,
         ':email'         => $email,
         ':password_hash' => password_hash($password, PASSWORD_BCRYPT),
         ':timezone'      => $timezone,
@@ -107,6 +110,11 @@ if ($method === 'PUT') {
     $isAdmin     = isset($data['is_admin']) ? (int) $data['is_admin'] : null;
     $password    = isset($data['password']) ? (string) $data['password'] : null;
     $substackRaw = array_key_exists('substack_url', $data) ? $data['substack_url'] : null;
+    // bio: present in payload (even as empty string) → update; absent → skip.
+    $bioRaw = array_key_exists('bio', $data) ? trim((string) $data['bio']) : null;
+    if ($bioRaw !== null && mb_strlen($bioRaw) > 500) {
+        respond(422, ['errors' => ['bio' => 'Bio must be 500 characters or fewer.']]);
+    }
 
     // Block self-demotion of admin flag.
     if ($id === (int) $admin['id'] && $isAdmin === 0) {
@@ -160,6 +168,10 @@ if ($method === 'PUT') {
     if ($substackRaw !== null) {
         $fields[]                 = 'substack_url = :substack_url';
         $params[':substack_url']  = ($substackRaw === '') ? null : (string) $substackRaw;
+    }
+    if ($bioRaw !== null) {
+        $fields[]        = 'bio = :bio';
+        $params[':bio']  = ($bioRaw === '') ? null : $bioRaw;
     }
     // password: non-empty string already validated above.
     if ($password !== null && $password !== '') {

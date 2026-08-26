@@ -16,6 +16,14 @@ export const StatsStrip = ({ stats }: { stats: StatsResponse | null }) => {
     <Box sx={{ mb: 3 }}>
       <Typography variant="subtitle2" color="text.secondary">
         {stats.total} {stats.total === 1 ? 'photo' : 'photos'} so far
+        {typeof stats.photographers === 'number' && stats.photographers > 0 && (
+          <>
+            {' · '}{stats.photographers} {stats.photographers === 1 ? 'photographer' : 'photographers'}
+            {typeof stats.timezones === 'number' && stats.timezones > 1 && (
+              <> · {stats.timezones} time zones</>
+            )}
+          </>
+        )}
       </Typography>
       <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.5, height: 48, mt: 1 }}>
         {stats.by_hour.map((b) => (

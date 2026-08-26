@@ -19,7 +19,7 @@ $username = isset($_GET['username']) ? trim((string) $_GET['username']) : null;
 
 if ($username !== null && $username !== '') {
     $stmt = db()->prepare(
-        'SELECT id, username, name, substack_url
+        'SELECT id, username, name, substack_url, bio
          FROM users
          WHERE username = :username AND status = :status'
     );
@@ -53,6 +53,7 @@ if ($username !== null && $username !== '') {
         'username'    => $user['username'],
         'name'        => $user['name'],
         'substack_url' => $user['substack_url'],
+        'bio'         => $user['bio'],
         'photos'      => $photos,
     ]);
     return;
@@ -61,7 +62,7 @@ if ($username !== null && $username !== '') {
 // ── Full index ────────────────────────────────────────────────────────────────
 
 $stmt = db()->query(
-    'SELECT u.username, u.name, u.substack_url,
+    'SELECT u.username, u.name, u.substack_url, u.bio,
             COUNT(p.id) AS photo_count
      FROM users u
      LEFT JOIN photos p ON p.user_id = u.id AND p.hidden = 0
