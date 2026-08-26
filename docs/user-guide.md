@@ -113,9 +113,11 @@ iframes (your own blog, Notion, etc.).
 
 **On Substack** raw iframes are not supported, so use a **link preview**
 instead: paste `https://aday.photoni.st/photos/<your-photo-id>` into a post and
-Substack renders a rich card (it fetches the page's OpenGraph tags). To share
-the whole gallery as a link, use `https://aday.photoni.st/embed?photographer=username`
-— it appears as a normal link (the embed page has no card metadata).
+Substack renders a rich **photo** card (it fetches the page's OpenGraph tags).
+Pasting the whole-gallery link
+`https://aday.photoni.st/embed?photographer=username` also shows a branded card
+("Document Your Life") — its image is the site logo, so it's a gallery card
+rather than a specific photo.
 
 ---
 

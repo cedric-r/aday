@@ -190,11 +190,13 @@ clickjack-embedded elsewhere.
 > (its editor only embeds whitelisted providers), so the iframe snippet will
 > not work inside a Substack post. What **does** work on Substack is a
 > **card-style link preview**: paste a plain URL and Substack fetches its
-> OpenGraph metadata and shows a rich card. For that to show a photo, link to
-> the photo's own page **`https://aday.photoni.st/photos/<id>`** (which carries
-> `og:image`/`og:title`/`og:description`). `/embed` itself has no og tags, so
-> pasting it on Substack appears as a bare link — use it as a normal
-> hyperlink, not a card.
+> OpenGraph metadata and shows a rich card.
+> - For a **photo** card, link to the photo's own page
+>   **`https://aday.photoni.st/photos/<id>`** (its `og:image` is the actual photo).
+> - Pasting **`/embed`** (or `/embed?photographer=username`) also shows a
+>   branded "Document Your Life" card now — its image is the site logo, and
+>   the title personalises to the photographer when the `?photographer=`
+>   param is present.
 
 ---
 
