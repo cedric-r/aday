@@ -265,7 +265,11 @@ missing/short/placeholder.
 
 If the user is **already validated** (e.g. the single-use link was consumed by
 a first click or an email link-scanner prefetch), the endpoint is *idempotent*:
-it returns the same success redirect instead of an error.
+it returns the same success redirect instead of an error — and does **not**
+re-send the approval email.
+
+On a real `pending → validated` transition, the participant is emailed an
+approval confirmation (see `Mailer::sendUserValidated()`).
 
 **Errors**
 | Code | Condition |

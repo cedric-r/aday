@@ -279,6 +279,54 @@ class Mailer
     }
 
     /**
+     * Send a confirmation email to a participant when an admin validates
+     * them (approves their account). Includes the link to the posting page.
+     *
+     * Failures are logged and swallowed — validation itself never depends on
+     * mail succeeding.
+     *
+     * @param  array<string, mixed> $user  User row (needs id, name, email).
+     * @return void
+     */
+    public function sendUserValidated(array $user): void
+    {
+        $email = trim((string) ($user['email'] ?? ''));
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return;
+        }
+
+        $base = rtrim((string) env('APP_URL', 'https://aday.photoni.st'), '/');
+        $name = (string) ($user['name'] ?? $user['username'] ?? 'photographer');
+
+        $body = implode("\n", [
+            "Hi {$name},",
+            "",
+            "Your account has been approved — welcome to Document Your Life.",
+            "",
+            "You can now share your photos for the event:",
+            "  {$base}/post",
+            "",
+            "The deadline is the event date, 23:59 in your local time.",
+            "",
+            "We're looking forward to seeing what you capture.",
+        ]);
+
+        try {
+            $mail = $this->buildMailer();
+            $mail->addAddress($email);
+            $mail->Subject = '[Document Your Life] Your account is approved';
+            $mail->Body    = $body;
+            $mail->send();
+        } catch (PHPMailerException $e) {
+            error_log(
+                date('Y-m-d H:i:s') . " [Mailer] Failed to send validation confirmation for user {$user['id']}: " . self::maskLog($e->getMessage()) . "\n",
+                3,
+                dirname(__DIR__) . '/logs/mail.log'
+            );
+        }
+    }
+
+    /**
      * Build and configure a PHPMailer instance.
      */
     protected function buildMailer(): PHPMailer

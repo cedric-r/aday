@@ -91,6 +91,14 @@ if ($method === 'POST') {
         ':is_admin'      => $isAdmin,
     ]);
 
+    // Admin-created accounts are validated immediately — notify the user.
+    Mailer::make()->sendUserValidated([
+        'id'       => (int) db()->lastInsertId(),
+        'username' => $username,
+        'name'     => $name,
+        'email'    => $email,
+    ]);
+
     http_response_code(201);
     echo json_encode(['message' => 'User created.']);
     return;
@@ -189,9 +197,24 @@ if ($method === 'PUT') {
         respond(400, 'No fields to update.');
     }
 
+    // Capture the previous status so we can detect a transition → validated
+    // and notify the user (only when they actually become approved).
+    $prevStmt = db()->prepare('SELECT username, name, email, status FROM users WHERE id = :id');
+    $prevStmt->execute([':id' => $id]);
+    $prev = $prevStmt->fetch();
+
     db()->prepare(
         'UPDATE users SET ' . implode(', ', $fields) . ' WHERE id = :id'
     )->execute($params);
+
+    if ($prev !== false && $status === 'validated' && $prev['status'] !== 'validated') {
+        Mailer::make()->sendUserValidated([
+            'id'       => $id,
+            'username' => $prev['username'],
+            'name'     => $prev['name'],
+            'email'    => $prev['email'],
+        ]);
+    }
 
     echo json_encode(['message' => 'User updated.']);
     return;

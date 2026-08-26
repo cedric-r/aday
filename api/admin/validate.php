@@ -34,7 +34,7 @@ try {
 }
 
 // Load the user with its single-use nonce.
-$stmt = db()->prepare('SELECT id, username, email, status, validation_nonce FROM users WHERE id = :id');
+$stmt = db()->prepare('SELECT id, username, name, email, status, validation_nonce FROM users WHERE id = :id');
 $stmt->execute([':id' => $id]);
 $user = $stmt->fetch();
 
@@ -84,6 +84,11 @@ if (!hash_equals($expected, $token)) {
 // Set status to validated and consume the nonce (single-use).
 db()->prepare('UPDATE users SET status = :status, validation_nonce = NULL WHERE id = :id')
     ->execute([':status' => 'validated', ':id' => $id]);
+
+// Notify the participant that they've been approved. Only on a real
+// transition (the already-validated path above returns early), so the
+// confirmation email fires once.
+Mailer::make()->sendUserValidated($user);
 
 // In production this would redirect; in test mode return 200 JSON.
 if (env('APP_ENV') === 'testing') {

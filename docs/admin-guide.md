@@ -188,6 +188,23 @@ The result reports how many emails were delivered (`sent`) and how many failed
 
 ---
 
+## Validating a user
+
+New registrations arrive as **pending**. Approve them by either:
+
+- Clicking the **Validate** link in the admin notification email (single-use,
+  72h expiry), or
+- Editing the user in the **Users** tab and setting **Status → validated**.
+
+Either way the participant is emailed an **approval confirmation** the moment
+their account becomes validated (including when a user is created directly as
+validated from the **Add user** form). Clicking an already-used link shows the
+same success redirect without re-sending the email.
+
+Pending users can't post until validated.
+
+---
+
 ## Embed Tab
 
 Click the **Embed** tab to generate embeddable snippets for any site that
