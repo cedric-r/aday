@@ -108,4 +108,48 @@ describe('PhotographerPage', () => {
     await waitFor(() => expect(screen.getByText('Alice Example')).toBeInTheDocument());
     expect(screen.queryByRole('link', { name: /substack/i })).toBeNull();
   });
+
+  it('shows no delete buttons when viewing someone else profile', async () => {
+    mockFetch.mockResolvedValueOnce(new Response(JSON.stringify(profile), { status: 200 }));
+
+    renderPage(); // alice, but logged-out user
+    await waitFor(() => expect(screen.getAllByText('Alice Example').length).toBeGreaterThan(0));
+
+    expect(screen.queryAllByRole('button', { name: /delete photo/i })).toHaveLength(0);
+  });
+
+  it('shows delete buttons and deletes own photo on own profile', async () => {
+    // Logged in as alice → own profile.
+    vi.spyOn(AuthModule, 'useAuth').mockReturnValue({
+      user: { authenticated: true, status: 'validated', username: 'alice', name: 'Alice', is_admin: false, timezone: 'UTC' },
+      isLoading: false,
+      login: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    mockFetch
+      .mockResolvedValueOnce(new Response(JSON.stringify(profile), { status: 200 })) // initial load
+      .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'Photo deleted.' }), { status: 200 })) // DELETE
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ...profile, photos: [profile.photos[1]] }), { status: 200 }), // reload
+      );
+
+    renderPage();
+    await waitFor(() => expect(screen.getAllByText('Alice Example').length).toBeGreaterThan(0));
+
+    const deleteButtons = screen.getAllByRole('button', { name: /delete photo/i });
+    expect(deleteButtons).toHaveLength(2);
+
+    // First photo → confirm dialog.
+    await deleteButtons[0].click();
+    expect(screen.getByText(/delete this photo/i)).toBeInTheDocument();
+
+    // Confirm.
+    await screen.getByRole('button', { name: /^delete$/i }).click();
+
+    await waitFor(() => expect(screen.getAllByText('Alice Example').length).toBeGreaterThan(0));
+    const deleteCall = mockFetch.mock.calls.find((c) => c[1]?.method === 'DELETE');
+    expect(deleteCall).toBeTruthy();
+    expect(String(deleteCall?.[0])).toContain('id=1');
+  });
 });

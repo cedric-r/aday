@@ -275,4 +275,44 @@ if ($method === 'GET') {
     return;
 }
 
+// ── DELETE ?id=N — participant removes their own photo ──────────────────────
+
+if ($method === 'DELETE') {
+    $user = Auth::requireValidated();
+    $id   = (int) ($_GET['id'] ?? 0);
+
+    if ($id <= 0) {
+        respond(400, 'id is required.');
+    }
+
+    // Ownership is enforced: a participant may only delete their own photos.
+    $stmt = db()->prepare(
+        'SELECT p.filename, p.user_id
+         FROM photos p
+         WHERE p.id = :id'
+    );
+    $stmt->execute([':id' => $id]);
+    $photo = $stmt->fetch();
+
+    if ($photo === false || (int) $photo['user_id'] !== (int) $user['id']) {
+        respond(404, 'Photo not found.');
+    }
+
+    // Remove the file, thumbnail, and DB row. Hidden photos are treated the
+    // same as visible ones — ownership alone governs deletion.
+    $filePath  = dirname(__DIR__) . "/uploads/{$user['username']}/{$photo['filename']}";
+    $thumbPath = dirname(__DIR__) . "/uploads/{$user['username']}/thumbs/{$photo['filename']}";
+    if (file_exists($filePath)) {
+        @unlink($filePath);
+    }
+    if (file_exists($thumbPath)) {
+        @unlink($thumbPath);
+    }
+
+    db()->prepare('DELETE FROM photos WHERE id = :id')->execute([':id' => $id]);
+
+    echo json_encode(['message' => 'Photo deleted.', 'id' => $id]);
+    return;
+}
+
 respond(405, 'Method not allowed.');

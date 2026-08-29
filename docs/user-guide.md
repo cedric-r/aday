@@ -151,4 +151,8 @@ Shows a single photographer's:
 in, a **⬇ Download my photos (ZIP)** button appears above the feed. It gives you
 a ZIP of all your visible photos plus a `descriptions.txt` manifest.
 
+**Deleting your own photos** — each of your photos also shows a **🗑 delete**
+button (only on your own profile). Deleting asks for confirmation and
+permanently removes the photo, its thumbnail, and its metadata.
+
 If a photographer has not yet posted any photos, the page shows "No photos yet."

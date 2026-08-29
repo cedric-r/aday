@@ -23,6 +23,7 @@ A dynamic photo publishing system for a single 1-day event — photographers acr
 - **Admin highlights** (⭐ strip), **hide/unlist** (👁), metadata **CSV/JSON/ZIP export**
 - **EXIF capture** (make/model/focal/aperture/shutter/ISO), optional **gear** field for film shooters, and an optional **photographer bio**
 - **Self-service download** — participants grab a ZIP of their own photos from their profile page (`/api/my-export.php`)
+- **Self-service delete** — participants remove their own photos from their profile page (`DELETE /api/photos.php?id=N`, ownership-enforced)
 - **Substack / embed** — header-less `/embed` page (per-photographer filter, dark theme, admin-copy iframe snippet for iframe-friendly sites). On Substack itself (no raw iframes allowed) use the **card-style link previews** from the per-photo pages (`og:image`/`og:title`/`og:description`)
 - **Registration validation emails** to DB admin accounts (single-use HMAC links, 72h expiry)
 - **Approval confirmation email** to the participant the moment an admin validates them (link, admin edit, or admin create)

@@ -4,11 +4,20 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
 import { PhotographerDetailSchema } from '@/schemas/photographer.schema';
 import type { PhotographerDetail } from '@/schemas/photographer.schema';
 import { PhotoCard } from '@/components/PhotoCard';
 import { useAuth } from '@/context/AuthContext';
 import { NotFoundPage } from './NotFoundPage';
+
+interface PendingDelete {
+  id: number;
+}
 
 export const PhotographerPage = () => {
   const { username } = useParams<{ username: string }>();
@@ -16,6 +25,8 @@ export const PhotographerPage = () => {
   const [profile, setProfile] = useState<PhotographerDetail | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const isOwnProfile = user !== null && user.username === username;
 
   useEffect(() => {
@@ -38,6 +49,30 @@ export const PhotographerPage = () => {
     };
     void load();
   }, [username]);
+
+  const reload = async () => {
+    if (!username) return;
+    const res = await fetch(`/api/photographers.php?username=${encodeURIComponent(username)}`);
+    if (res.ok) {
+      setProfile(PhotographerDetailSchema.parse(await res.json()));
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleteError(null);
+    try {
+      const res = await fetch(`/api/photos.php?id=${pendingDelete.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setPendingDelete(null);
+        await reload();
+      } else {
+        setDeleteError('Failed to delete the photo.');
+      }
+    } catch {
+      setDeleteError('Failed to delete the photo.');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -100,9 +135,26 @@ export const PhotographerPage = () => {
               description: photo.description,
               posted_at: photo.posted_at,
             }}
+            onDelete={isOwnProfile ? (p) => setPendingDelete({ id: p.id }) : undefined}
           />
         ))
       )}
+
+      <Dialog open={pendingDelete !== null} onClose={() => setPendingDelete(null)}>
+        <DialogTitle>Delete this photo?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This permanently removes the photo and its files. This cannot be undone.
+          </DialogContentText>
+          {deleteError && <Typography color="error" sx={{ mt: 1 }}>{deleteError}</Typography>}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPendingDelete(null)}>Cancel</Button>
+          <Button onClick={() => { void handleDelete(); }} color="error">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

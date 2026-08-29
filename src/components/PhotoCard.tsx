@@ -5,12 +5,14 @@ import CardMedia from '@mui/material/CardMedia';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Link from '@mui/material/Link';
+import IconButton from '@mui/material/IconButton';
 import { Link as RouterLink } from 'react-router-dom';
 import type { Photo } from '@/schemas/photo.schema';
 
 interface Props {
   photo: Photo;
   onOpen?: (photo: Photo) => void;
+  onDelete?: (photo: Photo) => void;
 }
 
 const CameraPlaceholder = () => (
@@ -49,7 +51,7 @@ export const exifLine = (photo: Photo): string | null => {
   return parts.length > 0 ? parts.join(' · ') : null;
 };
 
-export const PhotoCard = ({ photo, onOpen }: Props) => {
+export const PhotoCard = ({ photo, onOpen, onDelete }: Props) => {
   const [imgError, setImgError] = useState(false);
   const { username, name, substack_url, filename, description, posted_at } = photo;
 
@@ -114,6 +116,19 @@ export const PhotoCard = ({ photo, onOpen }: Props) => {
             <Typography variant="caption" color="text.secondary">
               {formattedDate}
             </Typography>
+            {onDelete && (
+              <IconButton
+                size="small"
+                aria-label="Delete photo"
+                title="Delete photo"
+                onClick={() => onDelete(photo)}
+                sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}
+              >
+                <Box component="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" sx={{ width: 18, height: 18, fill: 'currentColor' }}>
+                  <path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                </Box>
+              </IconButton>
+            )}
           </Box>
         </Box>
 

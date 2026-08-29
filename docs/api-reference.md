@@ -481,6 +481,29 @@ bob/
 
 ## Photos
 
+### DELETE /api/photos.php?id=N
+
+Delete one of your own photos (from the "My photos" page). Removes the file,
+thumbnail, and database row permanently.
+
+| Auth required | Yes — validated user |
+|---|---|
+
+**Response — 200 OK**
+```json
+{ "message": "Photo deleted.", "id": 42 }
+```
+
+**Errors**
+| Code | Condition |
+|---|---|
+| 401 | Not authenticated |
+| 403 | Account not validated |
+| 400 | Missing `id` |
+| 404 | Photo not found, or it belongs to another user (ownership is enforced) |
+
+---
+
 ### POST /api/photos.php
 
 Upload a photo. Multipart form data.
