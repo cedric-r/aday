@@ -47,6 +47,7 @@ export const Nav = () => {
       {!user && <NavButton to="/login">Log in</NavButton>}
       {user && <NavButton to="/post">Post</NavButton>}
       {user && <NavButton to={`/photographers/${user.username}`}>My photos</NavButton>}
+      {user && <NavButton to="/notifications">Notifications</NavButton>}
       {user?.is_admin && <NavButton to="/admin">Admin</NavButton>}
 
       {user && (

@@ -16,6 +16,7 @@ const PostPage = lazy(() => import('@/pages/PostPage').then((m) => ({ default: m
 const AdminPage = lazy(() => import('@/pages/AdminPage').then((m) => ({ default: m.AdminPage })));
 const EmbedPage = lazy(() => import('@/pages/EmbedPage').then((m) => ({ default: m.EmbedPage })));
 const PhotoPage = lazy(() => import('@/pages/PhotoPage').then((m) => ({ default: m.PhotoPage })));
+const NotificationsPage = lazy(() => import('@/pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
 
 const PageSpinner = () => (
@@ -54,6 +55,14 @@ export const App = () => (
               element={
                 <ProtectedRoute>
                   <PostPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <NotificationsPage />
                 </ProtectedRoute>
               }
             />

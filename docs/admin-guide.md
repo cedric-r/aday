@@ -188,6 +188,25 @@ The result reports how many emails were delivered (`sent`) and how many failed
 
 ---
 
+## Messages Tab
+
+Click the **Messages** tab to post a notification to the participants.
+
+1. **Subject** — required, max 200 chars, single line.
+2. **Message** — required, max 5000 chars.
+3. **Post notification** — a confirmation dialog shows how many validated
+   participants will see it.
+
+Notifications appear immediately on each participant's **Notifications** tab
+(`/notifications`). Nothing is emailed from here — use the **Email** tab if you
+also want an email. The **Sent notifications** list below the composer shows
+everything posted, and each entry has a **Delete** button to retract it (the
+message disappears from every participant's tab).
+
+Only admins can post or delete. Participants can read but never send.
+
+---
+
 ## Validating a user
 
 New registrations arrive as **pending**. Approve them by either:

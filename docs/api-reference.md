@@ -698,6 +698,69 @@ All validated photographers, A–Z (case-insensitive by name).
 
 ---
 
+### GET /api/messages.php
+
+Notifications feed — announcements posted by the organisers. Read-only;
+available to **any validated** logged-in user (participants and admins). There
+is no endpoint for a participant to send a message.
+
+| Auth required | Yes — validated user |
+|---|---|
+
+**Response — 200 OK**
+```json
+{
+  "messages": [
+    { "id": 2, "subject": "Event reminder", "body": "…", "created_at": "2026-09-13 19:00:00" }
+  ]
+}
+```
+Newest first, capped at 200.
+
+**Errors** — 401 (not logged in), 403 (account not validated).
+
+---
+
+### GET /api/admin/messages.php
+
+All notifications plus the recipient count (validated non-admin users) for the
+composer.
+
+| Auth required | Yes — admin |
+|---|---|
+
+**Response — 200 OK**
+```json
+{ "messages": [ … ], "recipients": 8 }
+```
+
+### POST /api/admin/messages.php
+
+Post a notification. Body (JSON or form-encoded):
+
+| Field | Required | Constraints |
+|---|---|---|
+| `subject` | yes | 1–200 chars, single line (no newlines) |
+| `body` | yes | 1–5000 chars |
+
+**Response — 201 Created**
+```json
+{ "message": "Message sent.", "notification": { "id": 9, "subject": "…", "body": "…", "created_at": "…" } }
+```
+
+### DELETE /api/admin/messages.php?id=N
+
+Retract a notification (removes it from every reader's Notifications tab).
+
+**Response — 200 OK**
+```json
+{ "message": "Message deleted.", "id": 9 }
+```
+
+**Errors** — 400 (missing id), 404 (unknown id), 403 (non-admin).
+
+---
+
 ### GET /api/admin/email.php?scope=validated|all
 
 Recipient-count preview (no email is sent). `scope=validated` (default) counts

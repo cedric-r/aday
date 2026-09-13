@@ -43,15 +43,17 @@ api/
   photographers.php      GET  — index list or single profile
   stats.php              GET  — total count + photographer/timezone breadth + 48h hourly histogram
   my-export.php          GET  — participant's own ZIP download (validated session)
+  messages.php           GET  — notifications feed (validated session; read-only)
   status.php             GET  — event window status
   admin/
     users.php            GET/POST/PUT/DELETE — user management
     validate.php         GET  — approve user via HMAC link (id|email|expiry|nonce, single-use, fail-closed)
     settings.php         GET/POST — event date + late-submissions toggle
     submissions.php      GET/POST/DELETE — submissions + highlight/hidden toggles (strict booleans)
-    wrapup.php           POST — send the post-event wrap-up email once
-    email.php            GET/POST — recipient-count preview + one-off broadcast email
-    export.php           GET  — ZIP (photos) or CSV/JSON metadata export
+    wrapup.php            POST — send the post-event wrap-up email once
+    email.php             GET/POST — recipient-count preview + one-off broadcast email
+    messages.php          GET/POST/DELETE — notifications for the Notifications tab
+    export.php            GET  — ZIP (photos) or CSV/JSON metadata export
 
 lib/
   Auth.php               requireAdmin() / requireValidated() / currentUser()
@@ -82,6 +84,7 @@ migrations/
   005_add_hidden.php     hidden (unlist) flag
   006_add_validation_nonce.php  single-use nonce for admin validation links
   007_add_bio.php        users.bio (photographer blurb)
+  008_add_messages.php   messages table (Notifications tab)
   run.php                CLI runner — executes all migrations in order
 
 scripts/
@@ -112,7 +115,8 @@ src/
     RegisterPage.tsx      /register — registration form + captcha + optional bio
     LoginPage.tsx         /login — login form
     PostPage.tsx          /post — photo upload form (protected; gear field)
-    AdminPage.tsx         /admin — admin dashboard (admin-protected, 4 tabs)
+    NotificationsPage.tsx /notifications — messages from the organisers (validated users; read-only)
+    AdminPage.tsx         /admin — admin dashboard (admin-protected, 6 tabs)
     EmbedPage.tsx         /embed — header-less gallery for iframes (photographer + theme params)
     NotFoundPage.tsx      * — 404
 
@@ -131,7 +135,8 @@ src/
       UserTable.tsx       User list with status badges + actions
       UserModal.tsx       Add/Edit user modal (validated substack_url + timezone)
       EventDatePanel.tsx    Event date + late-submissions toggle
-      EmailPanel.tsx        Broadcast email composer (scope, preview count, confirm)  
+      EmailPanel.tsx        Broadcast email composer (scope, preview count, confirm)
+      MessagePanel.tsx      Notification composer + sent list (delete/retract)
       SubmissionsPanel.tsx  Submission monitor: highlight/hide toggles, delete, export (ZIP/CSV/JSON), wrap-up email
       EmbedPanel.tsx        Embed snippet generator (photographer + theme → iframe/link)
 
@@ -266,4 +271,13 @@ CREATE TABLE photos (
 );
 CREATE INDEX idx_photos_posted_at ON photos(posted_at DESC);
 CREATE INDEX idx_photos_user_id   ON photos(user_id);
+
+CREATE TABLE messages (                            -- migration 008
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject    TEXT NOT NULL,
+    body       TEXT NOT NULL,
+    created_by INTEGER,                            -- users.id of the admin who sent it
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    -- read in-app on /notifications by every validated user; never emailed
+);
 ```

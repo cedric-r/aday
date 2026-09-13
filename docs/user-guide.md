@@ -138,6 +138,19 @@ Click **Index** in the menu to see the **Photographer Index** (`/index`):
 
 ---
 
+## Notifications
+
+URL: `/notifications` (visible in the menu once you're logged in)
+
+Messages from the organisers — event reminders, schedule changes, anything the
+team needs to tell everyone taking part. Newest first. The page is read-only:
+participants can read notifications but cannot send them (only organisers can).
+
+If your account is still awaiting validation, the page tells you so — you'll
+see notifications as soon as an organiser approves you.
+
+---
+
 ## Photographer Profile Page
 
 URL: `/photographers/{username}`
