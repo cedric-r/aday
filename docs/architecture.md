@@ -75,6 +75,9 @@ config/
   env.php       Loads .env via parse_ini_file; exposes env() helper
   session.php   Cookie params (Secure, HttpOnly, SameSite=Lax), 2h idle timeout,
                 Origin/Sec-Fetch-Site CSRF check on state-changing requests
+                (compares the full origin authority — host *and* non-default
+                port — against HTTP_HOST, so same-origin writes work on any
+                port while cross-port/cross-host callers are rejected)
   captcha.php   Returns array of 50 ['q','a'] question pairs
 
 migrations/

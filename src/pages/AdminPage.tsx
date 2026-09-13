@@ -29,7 +29,14 @@ export const AdminPage = () => {
         Admin
       </Typography>
 
-      <Tabs value={tab} onChange={(_, v: TabId) => setTab(v)} sx={{ mb: 3 }}>
+      <Tabs
+        value={tab}
+        onChange={(_, v: TabId) => setTab(v)}
+        variant="scrollable"
+        scrollButtons="auto"
+        allowScrollButtonsMobile
+        sx={{ mb: 3 }}
+      >
         <Tab label="Users" />
         <Tab label="Event Date" />
         <Tab label="Submissions" />

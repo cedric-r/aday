@@ -42,19 +42,30 @@ if (in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH'], true)) {
     $origin = isset($_SERVER['HTTP_ORIGIN']) ? (string) $_SERVER['HTTP_ORIGIN'] : '';
     $host   = isset($_SERVER['HTTP_HOST']) ? (string) $_SERVER['HTTP_HOST'] : '';
     if ($origin !== '' && $host !== '') {
-        $originHost = parse_url($origin, PHP_URL_HOST);
-        if ($originHost !== null && $originHost !== $host) {
-            http_response_code(403);
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['message' => 'Cross-origin request rejected.']);
-            exit;
+        // Compare the FULL authority (host + non-default port), not just the
+        // host: HTTP_HOST carries the port for non-default ports, so a
+        // host-only comparison rejected legitimate same-origin writes (and,
+        // worse, accepted cross-origin ones from a different port on the same
+        // host). Default ports are normalised away because browsers omit them
+        // from Host for http://:80 and https://:443.
+        $originHost   = parse_url($origin, PHP_URL_HOST);
+        $originPort   = parse_url($origin, PHP_URL_PORT);
+        $originScheme = parse_url($origin, PHP_URL_SCHEME);
+        if ($originPort !== null
+            && (($originScheme === 'http' && $originPort === 80) || ($originScheme === 'https' && $originPort === 443))
+        ) {
+            $originPort = null;
+        }
+        $originAuthority = $originHost === null
+            ? null
+            : ($originPort !== null ? "{$originHost}:{$originPort}" : $originHost);
+
+        if ($originAuthority !== null && $originAuthority !== $host) {
+            respond(403, ['message' => 'Cross-origin request rejected.']);
         }
     }
     $fetchSite = isset($_SERVER['HTTP_SEC_FETCH_SITE']) ? (string) $_SERVER['HTTP_SEC_FETCH_SITE'] : '';
     if ($fetchSite === 'cross-site') {
-        http_response_code(403);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['message' => 'Cross-origin request rejected.']);
-        exit;
+        respond(403, ['message' => 'Cross-origin request rejected.']);
     }
 }
