@@ -52,7 +52,7 @@ api/
     submissions.php      GET/POST/DELETE — submissions + highlight/hidden toggles (strict booleans)
     wrapup.php            POST — send the post-event wrap-up email once
     email.php             GET/POST — recipient-count preview + one-off broadcast email
-    messages.php          GET/POST/DELETE — notifications for the Notifications tab
+    messages.php          GET/POST/DELETE — notifications for the Notifications tab (+ email to participants)
     export.php            GET  — ZIP (photos) or CSV/JSON metadata export
 
 lib/
@@ -278,6 +278,7 @@ CREATE TABLE messages (                            -- migration 008
     body       TEXT NOT NULL,
     created_by INTEGER,                            -- users.id of the admin who sent it
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    -- read in-app on /notifications by every validated user; never emailed
+    -- read in-app on /notifications by every validated user; each new row is
+    -- also emailed to validated participants (best-effort, Mailer::sendBroadcast)
 );
 ```

@@ -62,10 +62,18 @@ export const MessagePanel = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subject: subject.trim(), body }),
       });
-      AdminMessageCreateSchema.parse(await res.json());
+      const parsed = AdminMessageCreateSchema.parse(await res.json());
       setSubject('');
       setBody('');
-      setResult({ kind: 'ok', text: 'Notification posted — it now appears on the Notifications tab.' });
+      const mailed = parsed.email?.sent ?? 0;
+      const mailFailed = parsed.email?.failed ?? 0;
+      setResult({
+        kind: 'ok',
+        text:
+          mailFailed > 0
+            ? `Notification posted and emailed to ${mailed} recipient(s); ${mailFailed} email(s) failed.`
+            : `Notification posted and emailed to ${mailed} recipient(s).`,
+      });
       await load();
     } catch {
       setResult({ kind: 'error', text: 'Failed to post the notification.' });
@@ -101,7 +109,8 @@ export const MessagePanel = () => {
       <Typography variant="h6">Send a notification</Typography>
       <Typography variant="body2" color="text.secondary">
         Posts a message to the Notifications tab
-        {recipients !== null ? ` for ${recipients} validated participant(s)` : ''}. No email is sent.
+        {recipients !== null ? ` for ${recipients} validated participant(s)` : ''} and emails
+        {' '}<strong>the same message</strong> to those participants.
       </Typography>
 
       {result && <Alert severity={result.kind === 'ok' ? 'success' : 'error'}>{result.text}</Alert>}
@@ -167,16 +176,17 @@ export const MessagePanel = () => {
       )}
 
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
-        <DialogTitle>Post this notification?</DialogTitle>
+        <DialogTitle>Post and email this notification?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            It will be visible on the Notifications tab
-            {recipients !== null ? ` to ${recipients} validated participant(s)` : ''} immediately.
+            It will appear on the Notifications tab and be <strong>emailed</strong> to
+            {recipients !== null ? ` ${recipients} validated participant(s)` : ' every validated participant'}.
+            This sends real email and cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
-          <Button onClick={() => { void handleSend(); }}>Post</Button>
+          <Button onClick={() => { void handleSend(); }}>Post &amp; email</Button>
         </DialogActions>
       </Dialog>
 

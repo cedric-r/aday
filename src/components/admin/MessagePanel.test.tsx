@@ -47,6 +47,7 @@ describe('MessagePanel', () => {
           JSON.stringify({
             message: 'Message sent.',
             notification: { id: 9, subject: 'Reminder', body: 'Event on the 16th.', created_at: '2026-09-13 19:00:00' },
+            email: { recipients: 5, sent: 5, failed: 0 },
           }),
           { status: 201 },
         ),
@@ -60,15 +61,42 @@ describe('MessagePanel', () => {
     await user.type(screen.getByLabelText('Subject'), 'Reminder');
     await user.type(screen.getByLabelText('Message'), 'Event on the 16th.');
     await user.click(screen.getByRole('button', { name: 'Post notification' }));
-    await user.click(await screen.findByRole('button', { name: 'Post' }));
+    await user.click(await screen.findByRole('button', { name: 'Post & email' }));
 
-    await waitFor(() => expect(screen.getByText(/it now appears on the notifications tab/i)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/emailed to 5 recipient/i)).toBeTruthy());
 
     const postCall = mockFetch.mock.calls.find((c) => c[1]?.method === 'POST');
     expect(postCall).toBeTruthy();
     const [url, init] = postCall as [string, RequestInit];
     expect(url).toBe('/api/admin/messages.php');
     expect(JSON.parse(String(init.body))).toEqual({ subject: 'Reminder', body: 'Event on the 16th.' });
+  });
+
+  it('reports partially failed emails', async () => {
+    mockFetch
+      .mockResolvedValueOnce(listResponse([], 3))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            message: 'Message sent.',
+            notification: { id: 11, subject: 'Odd', body: 'x', created_at: '2026-09-13 19:00:00' },
+            email: { recipients: 3, sent: 2, failed: 1 },
+          }),
+          { status: 201 },
+        ),
+      )
+      .mockResolvedValueOnce(listResponse([], 3));
+
+    const user = userEvent.setup();
+    render(<MessagePanel />);
+    await waitFor(() => expect(screen.getByText(/3 validated participant/i)).toBeTruthy());
+
+    await user.type(screen.getByLabelText('Subject'), 'Odd');
+    await user.type(screen.getByLabelText('Message'), 'x');
+    await user.click(screen.getByRole('button', { name: 'Post notification' }));
+    await user.click(await screen.findByRole('button', { name: 'Post & email' }));
+
+    await waitFor(() => expect(screen.getByText(/1 email\(s\) failed/i)).toBeTruthy());
   });
 
   it('deletes a notification after confirmation', async () => {
@@ -102,7 +130,7 @@ describe('MessagePanel', () => {
     await user.type(screen.getByLabelText('Subject'), 'x');
     await user.type(screen.getByLabelText('Message'), 'y');
     await user.click(screen.getByRole('button', { name: 'Post notification' }));
-    await user.click(await screen.findByRole('button', { name: 'Post' }));
+    await user.click(await screen.findByRole('button', { name: 'Post & email' }));
 
     await waitFor(() => expect(screen.getByText(/failed to post the notification/i)).toBeTruthy());
   });

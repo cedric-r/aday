@@ -19,6 +19,13 @@ export const AdminMessageListSchema = z.object({
 export const AdminMessageCreateSchema = z.object({
   message: z.string(),
   notification: MessageSchema,
+  email: z
+    .object({
+      recipients: z.number().int(),
+      sent: z.number().int(),
+      failed: z.number().int(),
+    })
+    .optional(),
 });
 
 export const MessageFormSchema = z.object({

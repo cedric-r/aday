@@ -195,15 +195,20 @@ Click the **Messages** tab to post a notification to the participants.
 1. **Subject** — required, max 200 chars, single line.
 2. **Message** — required, max 5000 chars.
 3. **Post notification** — a confirmation dialog shows how many validated
-   participants will see it.
+   participants will receive it. Confirm with **Post & email**.
 
 Notifications appear immediately on each participant's **Notifications** tab
-(`/notifications`). Nothing is emailed from here — use the **Email** tab if you
-also want an email. The **Sent notifications** list below the composer shows
-everything posted, and each entry has a **Delete** button to retract it (the
-message disappears from every participant's tab).
+(`/notifications`) **and are emailed to every validated participant** at the
+same time. The result line reports how many emails were delivered and how many
+failed (e.g. an unreachable mail relay). The **Sent notifications** list below
+the composer shows everything posted, and each entry has a **Delete** button to
+retract it (the message disappears from every participant's tab; already-sent
+emails cannot be recalled).
 
 Only admins can post or delete. Participants can read but never send.
+
+> Deleting a notification does **not** unsend its email — if you need to correct
+> something already emailed, post a follow-up notification.
 
 ---
 

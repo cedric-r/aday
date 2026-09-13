@@ -29,7 +29,7 @@ A dynamic photo publishing system for a single 1-day event — photographers acr
 - **Approval confirmation email** to the participant the moment an admin validates them (link, admin edit, or admin create)
 - **Post-event wrap-up email** to participants (admin button or cron `scripts/send_wrapup.php`)
 - **Admin broadcast email** — one-off messages (event reminders) to validated participants or all registered users, recipient-count preview + confirm-before-send (`/api/admin/email.php`)
-- **Notifications tab** — admins post announcements (`/api/admin/messages.php`); every validated logged-in user reads them at `/notifications`. In-app only (no email), and only admins can send
+- **Notifications tab** — admins post announcements (`/api/admin/messages.php`); every validated logged-in user reads them at `/notifications`. Each notification is **also emailed** to the validated participants; only admins can send, participants read-only
 - **Security hardening** — prepared statements everywhere, http(s)-only URL validation, upload dimension caps, session fixation/CSRF defences, clickjacking CSP (embedding allowed only on `/embed`), fail-closed validation tokens
 
 ## Prerequisites

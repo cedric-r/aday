@@ -743,9 +743,17 @@ Post a notification. Body (JSON or form-encoded):
 | `subject` | yes | 1–200 chars, single line (no newlines) |
 | `body` | yes | 1–5000 chars |
 
+The message is stored (visible on `/notifications`) **and emailed** to every
+validated non-admin participant. Email is best-effort: a relay failure is
+logged and reported in `email.failed`, but it never loses the in-app message.
+
 **Response — 201 Created**
 ```json
-{ "message": "Message sent.", "notification": { "id": 9, "subject": "…", "body": "…", "created_at": "…" } }
+{
+  "message": "Message sent.",
+  "notification": { "id": 9, "subject": "…", "body": "…", "created_at": "…" },
+  "email": { "recipients": 8, "sent": 8, "failed": 0 }
+}
 ```
 
 ### DELETE /api/admin/messages.php?id=N

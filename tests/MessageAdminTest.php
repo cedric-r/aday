@@ -5,6 +5,28 @@ declare(strict_types=1);
 use PHPUnit\Framework\TestCase;
 
 /**
+ * Test double for Mailer — records broadcast calls without touching SMTP.
+ * (Distinct name from other test spies: PHPUnit loads all test files into one
+ * process, so a duplicate class name would be fatal.)
+ */
+class MessageBroadcastSpy extends Mailer
+{
+    /** @var list<array{recipients: list<string>, subject: string, body: string}> */
+    public array $broadcasts = [];
+
+    public function __construct()
+    {
+        // Skip parent — no SMTP config in tests.
+    }
+
+    public function sendBroadcast(array $recipients, string $subject, string $body): array
+    {
+        $this->broadcasts[] = ['recipients' => $recipients, 'subject' => $subject, 'body' => $body];
+        return ['sent' => count($recipients), 'failed' => 0];
+    }
+}
+
+/**
  * Tests for the Notifications feature:
  *   - api/messages.php        GET  (validated users read messages)
  *   - api/admin/messages.php  GET/POST/DELETE (admin composes + retracts)
@@ -13,6 +35,7 @@ final class MessageAdminTest extends TestCase
 {
     private string $messagesFile;
     private string $adminFile;
+    private MessageBroadcastSpy $spy;
 
     protected function setUp(): void
     {
@@ -20,6 +43,15 @@ final class MessageAdminTest extends TestCase
         $_SESSION = [];
         $this->messagesFile = dirname(__DIR__) . '/api/messages.php';
         $this->adminFile    = dirname(__DIR__) . '/api/admin/messages.php';
+
+        // Always install the spy so no test can ever reach a real SMTP relay.
+        $this->spy = new MessageBroadcastSpy();
+        Mailer::setTestInstance($this->spy);
+    }
+
+    protected function tearDown(): void
+    {
+        Mailer::setTestInstance(null);
     }
 
     private function loginAsAdmin(): array
@@ -191,6 +223,77 @@ final class MessageAdminTest extends TestCase
         $this->assertSame(200, $feed['status']);
         $this->assertCount(1, $feed['json']['messages']);
         $this->assertSame('Event reminder', $feed['json']['messages'][0]['subject']);
+    }
+
+    // -----------------------------------------------------------------------
+    // POST — email delivery (the notification is also emailed)
+    // -----------------------------------------------------------------------
+
+    public function test_post_emails_validated_participants(): void
+    {
+        $this->loginAsAdmin();
+        TestHelper::createUser(['username' => 'v1', 'email' => 'v1@example.com', 'status' => 'validated']);
+        TestHelper::createUser(['username' => 'v2', 'email' => 'v2@example.com', 'status' => 'validated']);
+        TestHelper::createUser(['username' => 'pend', 'email' => 'pend@example.com', 'status' => 'pending']);
+
+        $res = TestHelper::request($this->adminFile, 'POST', [
+            'subject' => 'Event reminder',
+            'body'    => 'The event is on the 16th.',
+        ]);
+
+        $this->assertSame(201, $res['status']);
+        $this->assertCount(1, $this->spy->broadcasts, 'exactly one broadcast');
+        $this->assertSame(['v1@example.com', 'v2@example.com'], $this->spy->broadcasts[0]['recipients']);
+        $this->assertSame('Event reminder', $this->spy->broadcasts[0]['subject']);
+        $this->assertSame('The event is on the 16th.', $this->spy->broadcasts[0]['body']);
+    }
+
+    public function test_post_response_reports_email_counts(): void
+    {
+        $this->loginAsAdmin();
+        TestHelper::createUser(['username' => 'a1', 'email' => 'a1@example.com', 'status' => 'validated']);
+
+        $res = TestHelper::request($this->adminFile, 'POST', ['subject' => 'Hi', 'body' => 'there']);
+
+        $this->assertSame(201, $res['status']);
+        $this->assertSame(1, $res['json']['email']['recipients']);
+        $this->assertSame(1, $res['json']['email']['sent']);
+        $this->assertSame(0, $res['json']['email']['failed']);
+    }
+
+    public function test_post_does_not_email_admins(): void
+    {
+        $this->loginAsAdmin(); // admin email is admin@example.com
+        TestHelper::createUser(['username' => 'part', 'email' => 'part@example.com', 'status' => 'validated']);
+
+        TestHelper::request($this->adminFile, 'POST', ['subject' => 'Hi', 'body' => 'there']);
+
+        $this->assertSame(['part@example.com'], $this->spy->broadcasts[0]['recipients']);
+    }
+
+    public function test_post_with_no_validated_participants_still_posts_message(): void
+    {
+        $this->loginAsAdmin(); // only the admin exists
+
+        $res = TestHelper::request($this->adminFile, 'POST', ['subject' => 'Solo', 'body' => 'no recipients']);
+
+        $this->assertSame(201, $res['status']);
+        $this->assertSame(0, $res['json']['email']['recipients']);
+        $this->assertCount(0, $this->spy->broadcasts, 'no broadcast attempted with zero recipients');
+        // The in-app message must still exist.
+        $this->assertSame(1, (int) db()->query('SELECT COUNT(*) FROM messages')->fetchColumn());
+    }
+
+    public function test_validation_failures_do_not_email_or_create(): void
+    {
+        $this->loginAsAdmin();
+        TestHelper::createUser(['username' => 'v9', 'email' => 'v9@example.com', 'status' => 'validated']);
+
+        $res = TestHelper::request($this->adminFile, 'POST', ['subject' => '', 'body' => 'x']);
+
+        $this->assertSame(422, $res['status']);
+        $this->assertCount(0, $this->spy->broadcasts, 'invalid payload must not email anyone');
+        $this->assertSame(0, (int) db()->query('SELECT COUNT(*) FROM messages')->fetchColumn());
     }
 
     // -----------------------------------------------------------------------

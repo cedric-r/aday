@@ -83,8 +83,41 @@ if ($method === 'POST') {
     $rows = db()->prepare('SELECT id, subject, body, created_at FROM messages WHERE id = :id');
     $rows->execute([':id' => $id]);
 
+    // Also deliver by email to every validated participant (the same audience
+    // the notification is visible to). Best-effort: the in-app message is the
+    // primary artifact, so a mail failure must not lose it — Mailer logs
+    // failures and reports per-recipient counts instead of throwing.
+    $emails = [];
+    $emailStmt = db()->query(
+        "SELECT DISTINCT email FROM users
+         WHERE status = 'validated' AND is_admin = 0
+           AND email IS NOT NULL AND email != ''"
+    );
+    if ($emailStmt !== false) {
+        $emails = array_values(array_filter(
+            array_map(
+                static fn (array $r): string => trim((string) $r['email']),
+                $emailStmt->fetchAll()
+            ),
+            static fn (string $e): bool => $e !== ''
+        ));
+    }
+
+    $emailResult = ['sent' => 0, 'failed' => 0];
+    if ($emails !== []) {
+        $emailResult = Mailer::make()->sendBroadcast($emails, $subject, $body);
+    }
+
     http_response_code(201);
-    echo json_encode(['message' => 'Message sent.', 'notification' => $rows->fetch()]);
+    echo json_encode([
+        'message'      => 'Message sent.',
+        'notification' => $rows->fetch(),
+        'email'        => [
+            'recipients' => count($emails),
+            'sent'       => $emailResult['sent'],
+            'failed'     => $emailResult['failed'],
+        ],
+    ]);
     return;
 }
 
