@@ -5,6 +5,13 @@ Options -Indexes
 php_value upload_max_filesize 16M
 php_value post_max_size 17M
 
+# ---- Wordfence WAF exclusion: override the parent photoni.st .htaccess
+# prepend (wordfence-waf.php) with a local no-op for this app. The aday
+# app is vanilla PHP with its own hardening; Wordfence's WordPress rules
+# false-positive on real photo uploads (embedded PHP-like bytes in EXIF,
+# HTML-ish captions). Revert = restore the line to the parent value. ----
+php_value auto_prepend_file "/var/www/photoni.st/aday/.waf-off.php"
+
 # ---- Security: never serve private files / dirs ----
 RewriteRule ^(\.env|composer\.(json|lock)|phpstan\.neon|phpunit\.xml|package(-lock)?\.json|vite\.config\.ts|eslint\.config\.js|tsconfig.*\.json)$ - [F,L]
 RewriteRule ^(data|logs|coverage|\.git|\.specifications|node_modules|src|tests|vendor|lib|config|migrations|scripts|docs|public)/ - [F,L]

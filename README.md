@@ -78,6 +78,7 @@ The production target for this project is **https://aday.photoni.st** (Apache on
 
 - The React SPA is built locally (`npm run build`) and deployed together with the PHP files.
 - Apache routing (SPA fallback, `/api` → PHP, static `/assets`), security rules, and upload limits are handled by the `.htaccess` in the repo root — no extra server config is needed for the site itself.
+- The parent photoni.st WordPress `.htaccess` prepends the Wordfence WAF (`auto_prepend_file`) to every PHP request under its docroot; the aday `.htaccess` overrides that with a local no-op (`.waf-off.php`) because Wordfence's WordPress-oriented rules false-positive on real photo uploads (embedded PHP-like bytes in EXIF/metadata, HTML-ish captions). Deployment must ship `.waf-off.php` alongside the app.
 - `.env` must set `APP_ENV=production` and an absolute `DB_PATH` on the server.
 
 See [`docs/setup.md`](docs/setup.md) for the full deployment walkthrough.

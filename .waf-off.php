@@ -1,0 +1,1 @@
+<?php /* WAF disabled for the aday app - see .htaccess */
