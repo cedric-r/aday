@@ -95,3 +95,7 @@ See [`docs/`](docs/) for full documentation:
 | [`docs/user-guide.md`](docs/user-guide.md) | Registration, posting photos, browsing the feed |
 | [`docs/admin-guide.md`](docs/admin-guide.md) | Admin panel, user management, submissions, export |
 | [`docs/development.md`](docs/development.md) | Running tests, coverage, PHPStan, conventions, TDD workflow |
+
+## License
+
+GPL-3.0-or-later — see [LICENSE](LICENSE) for the full text. Copyright © 2026 Cedric Raguenaud.

@@ -2,6 +2,7 @@
     "name": "aday/photo-publishing",
     "description": "Document Your Life — Vanilla PHP + SQLite photo publishing system",
     "type": "project",
+    "license": "GPL-3.0-or-later",
     "require": {
         "php": "^8.3",
         "phpmailer/phpmailer": "^6.9"
